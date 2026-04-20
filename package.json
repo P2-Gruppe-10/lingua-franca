@@ -1,0 +1,29 @@
+{
+  "name": "lingua-franca",
+  "version": "0.0.0",
+  "description": "Relationship-based Access Control",
+  "homepage": "https://github.com/P2-Gruppe-10/lingua-franca#readme",
+  "bugs": {
+    "url": "https://github.com/P2-Gruppe-10/lingua-franca/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/P2-Gruppe-10/lingua-franca.git"
+  },
+  "license": "AGPL-3.0-or-later",
+  "author": "Me",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
