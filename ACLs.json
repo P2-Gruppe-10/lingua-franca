@@ -1,0 +1,27 @@
+{
+  "EHR:1": [
+    {
+      "subject": {
+        "object": "group:2",
+        "relation": "member"
+      },
+      "relation": "viewer"
+    },
+    {
+      "subject": 935,
+      "relation": "owner"
+    }
+  ],
+  "group:2": [
+    {
+      "subject": 19472,
+      "relation": "member"
+    },
+    {
+      "subject": {
+        "object": "group:1",
+        "relation": "member"
+      }
+    }
+  ]
+}
