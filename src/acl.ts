@@ -1,4 +1,4 @@
-type Id = number;
+type ObjectId = string;
 type Type = string;
 /**
  * A thing which a subject can have a relation to.
@@ -6,9 +6,9 @@ type Type = string;
  */
 class Obj {
     type: Type;
-    identifier: Id;
+    identifier: ObjectId;
 
-    constructor(type: Type, identifier: Id) {
+    constructor(type: Type, identifier: ObjectId) {
         this.type = type;
         this.identifier = identifier;
     }
