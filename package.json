@@ -10,6 +10,10 @@
     "type": "git",
     "url": "git+https://github.com/P2-Gruppe-10/lingua-franca.git"
   },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 4
+  },
   "license": "AGPL-3.0-or-later",
   "author": "Me",
   "type": "module",
