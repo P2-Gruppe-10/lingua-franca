@@ -5,13 +5,13 @@ type Type = string;
  * Consist of a type and a unique identifier.
  */
 class Obj {
-  type: Type;
-  identifier: Id;
+    type: Type;
+    identifier: Id;
 
-  constructor(type: Type, identifier: Id) {
-    this.type = type;
-    this.identifier = identifier;
-  }
+    constructor(type: Type, identifier: Id) {
+        this.type = type;
+        this.identifier = identifier;
+    }
 }
 
 type Relation = string;
@@ -19,13 +19,13 @@ type Relation = string;
  * Represents a set of users that all share an relation to an object
  */
 class UserSet {
-  object: Obj;
-  relation: Relation;
+    object: Obj;
+    relation: Relation;
 
-  constructor(object: Obj, relation: Relation) {
-    this.object = object;
-    this.relation = relation;
-  }
+    constructor(object: Obj, relation: Relation) {
+        this.object = object;
+        this.relation = relation;
+    }
 }
 
 type UserId = number;
@@ -34,13 +34,13 @@ type Subject = UserId | UserSet;
  * The description of a relation between subjects and an object.
  */
 class ACL {
-  object: Obj;
-  relation: Relation;
-  subject: Subject;
+    object: Obj;
+    relation: Relation;
+    subject: Subject;
 
-  constructor(object: Obj, relation: Relation, subject: Subject) {
-    this.object = object;
-    this.relation = relation;
-    this.subject = subject;
-  }
+    constructor(object: Obj, relation: Relation, subject: Subject) {
+        this.object = object;
+        this.relation = relation;
+        this.subject = subject;
+    }
 }
