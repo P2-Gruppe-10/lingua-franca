@@ -5,7 +5,6 @@ type Type = string;
  * Consist of a type and a unique identifier.
  */
 class Obj {
-
     type: Type;
     identifier: Id;
 
@@ -13,17 +12,13 @@ class Obj {
         this.type = type;
         this.identifier = identifier;
     }
-
-
 }
-
 
 type Relation = string;
 /**
  * Represents a set of users that all share an relation to an object
  */
 class UserSet {
-
     object: Obj;
     relation: Relation;
 
@@ -31,7 +26,6 @@ class UserSet {
         this.object = object;
         this.relation = relation;
     }
-
 }
 
 type UserId = number;
@@ -40,18 +34,13 @@ type Subject = UserId | UserSet;
  * The description of a relation between subjects and an object.
  */
 class ACL {
-
     object: Obj;
     relation: Relation;
     subject: Subject;
 
     constructor(object: Obj, relation: Relation, subject: Subject) {
-
         this.object = object;
         this.relation = relation;
         this.subject = subject;
-
     }
-
 }
-

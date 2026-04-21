@@ -10,6 +10,18 @@
     "type": "git",
     "url": "git+https://github.com/P2-Gruppe-10/lingua-franca.git"
   },
+  "prettier": {
+    "trailingComma": "es5",
+    "tabWidth": 4,
+    "overrides": [
+      {
+        "files": "**/*.{yml,yaml,json}",
+        "options": {
+          "tabWidth": 2
+        }
+      }
+    ]
+  },
   "license": "AGPL-3.0-or-later",
   "author": "Me",
   "type": "module",
@@ -21,6 +33,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
+    "prettier": "3.8.3",
     "typescript": "^6.0.3"
   },
   "dependencies": {
