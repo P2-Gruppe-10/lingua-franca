@@ -1,10 +1,10 @@
-type ObjectId = string;
-type Type = string;
+export type ObjectId = string;
+export type Type = string;
 /**
  * A thing which a subject can have a relation to.
  * Consist of a type and a unique identifier.
  */
-class Obj {
+export class Obj {
     type: Type;
     identifier: ObjectId;
 
@@ -14,31 +14,31 @@ class Obj {
     }
 }
 
-type Relation = string;
+export type RelationName = string;
 /**
  * Represents a set of users that all share an relation to an object
  */
-class UserSet {
+export class UserSet {
     object: Obj;
-    relation: Relation;
+    relation: RelationName;
 
-    constructor(object: Obj, relation: Relation) {
+    constructor(object: Obj, relation: RelationName) {
         this.object = object;
         this.relation = relation;
     }
 }
 
-type UserId = number;
-type Subject = UserId | UserSet;
+export type UserId = number;
+export type Subject = UserId | UserSet;
 /**
  * The description of a relation between subjects and an object.
  */
-class ACL {
+export class Relation {
     object: Obj;
-    relation: Relation;
+    relation: RelationName;
     subject: Subject;
 
-    constructor(object: Obj, relation: Relation, subject: Subject) {
+    constructor(object: Obj, relation: RelationName, subject: Subject) {
         this.object = object;
         this.relation = relation;
         this.subject = subject;
