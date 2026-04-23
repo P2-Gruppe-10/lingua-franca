@@ -39,5 +39,9 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+    
+    // Custom
+    "rewriteRelativeImportExtensions": true,
+    "allowImportingTsExtensions": true,
   }
 }
