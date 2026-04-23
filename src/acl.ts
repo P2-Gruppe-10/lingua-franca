@@ -14,15 +14,15 @@ export class Obj {
     }
 }
 
-export type Relation = string;
+export type RelationName = string;
 /**
  * Represents a set of users that all share an relation to an object
  */
 export class UserSet {
     object: Obj;
-    relation: Relation;
+    relation: RelationName;
 
-    constructor(object: Obj, relation: Relation) {
+    constructor(object: Obj, relation: RelationName) {
         this.object = object;
         this.relation = relation;
     }
@@ -33,12 +33,12 @@ export type Subject = UserId | UserSet;
 /**
  * The description of a relation between subjects and an object.
  */
-export class ACL {
+export class Relation {
     object: Obj;
-    relation: Relation;
+    relation: RelationName;
     subject: Subject;
 
-    constructor(object: Obj, relation: Relation, subject: Subject) {
+    constructor(object: Obj, relation: RelationName, subject: Subject) {
         this.object = object;
         this.relation = relation;
         this.subject = subject;
