@@ -1,25 +1,25 @@
 {
-  "EHR:1": [
+  "EHR:2026-04-22_Bente_Olsen": [
     {
       "subject": {
-        "object": "group:2",
+        "object": "group:chief",
         "relation": "member"
       },
       "relation": "viewer"
     },
     {
-      "subject": 935,
+      "subject": 2,
       "relation": "owner"
     }
   ],
-  "group:2": [
+  "group:chief": [
     {
-      "subject": 19472,
+      "subject": 1,
       "relation": "member"
     },
     {
       "subject": {
-        "object": "group:1",
+        "object": "group:superadmin",
         "relation": "member"
       }
     }
