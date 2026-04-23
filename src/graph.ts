@@ -1,6 +1,5 @@
-import type { UserId } from './acl.ts'
-import { Obj, Relation } from './acl.ts'
-
+import type { UserId } from "./acl.ts";
+import { Obj, Relation } from "./acl.ts";
 
 type Vertex = Obj | UserId;
 
@@ -18,13 +17,8 @@ class Graph {
 
     getRelationsOf(vertex: Vertex): Relation[] {
         if (vertex instanceof Obj) {
-            return this.edges.filter(edge => vertex === edge.object)
+            return this.edges.filter((edge) => vertex === edge.object);
         }
         return [];
     }
 }
-
-
-
-
-
