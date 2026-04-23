@@ -14,4 +14,4 @@ jobs:
           npx prettier "**/*.ts" --write
       - uses: autofix-ci/action@v1
         with:
-          commit-message: "Apply Prettier format"
+          commit-message: "chore: formatting"
