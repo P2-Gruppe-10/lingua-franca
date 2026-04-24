@@ -1,5 +1,7 @@
-import type { UserId } from "./acl.ts";
-import { Obj, Relation } from "./acl.ts";
+import type { Subject, UserId } from "./acl.ts";
+import { Obj, Relation, UserSet } from "./acl.ts";
+import { describe, it } from "node:test";
+import { strict as assert } from "node:assert";
 
 type Vertex = Obj | UserId;
 
@@ -15,10 +17,88 @@ class Graph {
         this.edges = edges;
     }
 
-    getRelationsOf(vertex: Vertex): Relation[] {
+    getRelationsTo(vertex: Vertex): Relation[] {
         if (vertex instanceof Obj) {
             return this.edges.filter((edge) => vertex === edge.object);
         }
         return [];
     }
+
+    resolveSubjects(subject: Subject): UserId[] {
+        if (typeof subject === "number") {
+            return [subject];
+        }
+
+        let foundUsers: UserId[] = [];
+        const relations = this.getRelationsTo(subject.object).filter(
+            (relation) => subject.relationName === relation.name
+        );
+
+        for (const relation of relations) {
+            foundUsers = foundUsers.concat(
+                this.resolveSubjects(relation.subject)
+            );
+        }
+
+        return foundUsers;
+    }
+
+    resolveSubjects2(subject: Subject): UserId[] {
+        if (typeof subject === "number") return [subject];
+
+        // We know the subject is a userset
+        const userset = subject;
+
+        // First, get all relations pointing to the object
+        const users = this.getRelationsTo(userset.object)
+            // Next, only take the relations which have the correct name
+            .filter((rel) => rel.name === userset.relationName)
+            // Lastly, resolve the subjects for each of the relations found (kind of like a for loop)
+            .flatMap((rel) => this.resolveSubjects2(rel.subject));
+
+        // Deduplicate, i.e. remove all users who appear twice
+        const uniqueUsers = new Set(users);
+
+        // Convert back to array and return
+        return [...uniqueUsers];
+    }
 }
+
+describe("graph", () => {
+    it("should resolve all subjects", () => {
+        let vertices: Vertex[] = [];
+
+        //object: Obj;
+        //relation: RelationName;
+        //subject: Subject;
+
+        let mortenEhr = new Obj("EHR", "Morten's");
+
+        let læge = new Obj("Group", "Læge");
+        let overLæge = new Obj("Group", "Over Læge");
+
+        let Bob = 0;
+        let Alice = 1;
+        let Knud = 2;
+        let Gertrud = 3;
+        let Martin = 4;
+
+        let egdes: Relation[] = [
+            new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
+            new Relation(læge, "member", new UserSet(overLæge, "admin")),
+            new Relation(læge, "member", new UserSet(overLæge, "member")),
+            new Relation(overLæge, "admin", Bob),
+            new Relation(overLæge, "member", Alice),
+            new Relation(læge, "member", Knud),
+            new Relation(mortenEhr, "viewer", Alice),
+            new Relation(mortenEhr, "viewer", Gertrud),
+            new Relation(overLæge, "ASS!!", Martin),
+        ];
+
+        let graph = new Graph(vertices, egdes);
+
+        let users = graph.resolveSubjects2(new UserSet(mortenEhr, "viewer"));
+
+        assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
+    });
+});

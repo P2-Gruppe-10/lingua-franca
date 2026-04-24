@@ -20,11 +20,11 @@ export type RelationName = string;
  */
 export class UserSet {
     object: Obj;
-    relation: RelationName;
+    relationName: RelationName;
 
     constructor(object: Obj, relation: RelationName) {
         this.object = object;
-        this.relation = relation;
+        this.relationName = relation;
     }
 }
 
@@ -35,12 +35,12 @@ export type Subject = UserId | UserSet;
  */
 export class Relation {
     object: Obj;
-    relation: RelationName;
+    name: RelationName;
     subject: Subject;
 
     constructor(object: Obj, relation: RelationName, subject: Subject) {
         this.object = object;
-        this.relation = relation;
+        this.name = relation;
         this.subject = subject;
     }
 }
