@@ -1,4 +1,4 @@
-import type { UserId } from "./acl.ts";
+import type { Subject, UserId } from "./acl.ts";
 import { Obj, Relation } from "./acl.ts";
 
 type Vertex = Obj | UserId;
@@ -21,4 +21,13 @@ class Graph {
         }
         return [];
     }
+
+    resolveSubjects(subject: Subject): UserId[] {
+        if (typeof subject === 'number') {
+            return [subject];
+        }
+        let foundUsers: UserId[] = [];
+        this.edges.filter((relation) => subject.relation === relation.relation);
+    }
+    
 }
