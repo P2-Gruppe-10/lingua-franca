@@ -23,11 +23,10 @@ class Graph {
     }
 
     resolveSubjects(subject: Subject): UserId[] {
-        if (typeof subject === 'number') {
+        if (typeof subject === "number") {
             return [subject];
         }
         let foundUsers: UserId[] = [];
         this.edges.filter((relation) => subject.relation === relation.relation);
     }
-    
 }
