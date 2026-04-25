@@ -17,6 +17,15 @@ class Graph {
         this.edges = edges;
     }
 
+    // Methods for printing contents of a graph
+    vertexStrings(): string[] {
+        return this.vertices.map((vertex) => vertex.toString());
+    }
+
+    edgeStrings(): string[] {
+        return this.edges.map((edge) => edge.toString());
+    }
+
     getRelationsTo(vertex: Vertex): Relation[] {
         if (vertex instanceof Obj) {
             return this.edges.filter((edge) => vertex === edge.object);
