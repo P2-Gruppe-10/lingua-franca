@@ -81,10 +81,10 @@ describe("graph", () => {
         //relation: RelationName;
         //subject: Subject;
 
-        let mortenEhr = new Obj("EHR", "Morten's");
+        let mortenEhr = new Obj("EHR", "morten");
 
-        let læge = new Obj("Group", "Læge");
-        let overLæge = new Obj("Group", "Over Læge");
+        let læge = new Obj("group", "læge");
+        let overLæge = new Obj("group", "overlæge");
 
         let Bob = 0;
         let Alice = 1;
@@ -105,8 +105,10 @@ describe("graph", () => {
         ];
 
         let graph = new Graph(vertices, egdes);
+        console.log(graph.edgeStrings());
 
         let users = graph.resolveSubjects2(new UserSet(mortenEhr, "viewer"));
+        console.log(users);
 
         assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
     });
