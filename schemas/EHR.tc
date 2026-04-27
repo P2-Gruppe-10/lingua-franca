@@ -1,0 +1,35 @@
+type EHR
+
+relation owner
+
+relation patient
+
+relation carer
+
+relation appender
+give carer
+
+relation editor
+
+relation viewer
+give carer
+give editor
+give patient
+
+permission can_redact
+owner
+patient
+
+permission can_edit
+editor
+
+permission can_append
+editor
+carer
+appender
+
+permission can_view
+patient
+carer
+viewer
+editor
