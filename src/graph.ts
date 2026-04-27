@@ -38,8 +38,8 @@ class Graph {
      * A Subject can either be a UserId, in which case that UserId is returned.
      * Or it can be a UserSet, which match multiple UserIds.
      */
-    resolveSubjects(subject: Subject): UserId[] {
-        if (typeof subject === "number") return [subject];
+    resolveSubjects(subject: Subject): Set<UserId> {
+        if (typeof subject === "number") return new Set([subject]);
 
         // We know the subject is a userset
         const userset = subject;
@@ -48,14 +48,12 @@ class Graph {
         const users = this.getRelationsTo(userset.object)
             // Next, only take the relations which have the correct name
             .filter((rel) => rel.name === userset.relationName)
-            // Lastly, resolve the subjects for each of the relations found (kind of like a for loop)
-            .flatMap((rel) => this.resolveSubjects(rel.subject));
+            // Resolve the subjects for each of the relations found (kind of like a for loop)
+            .map((rel) => this.resolveSubjects(rel.subject))
+            // Lastly, since `resolveSubjects` returns a set of users, merge them into 1 set
+            .reduce((users, resolved) => users.union(resolved));
 
-        // Deduplicate, i.e. remove all users who appear twice
-        const uniqueUsers = new Set(users);
-
-        // Convert back to array and return
-        return [...uniqueUsers];
+        return users;
     }
 }
 
@@ -87,7 +85,8 @@ describe("A graph", () => {
         const graph = new Graph([], edges);
 
         const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
-        assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
+
+        assert.deepEqual(users, new Set([Bob, Alice, Knud, Gertrud]));
     });
 
     it("should handle loops", () => {
@@ -97,6 +96,6 @@ describe("A graph", () => {
         const graph = new Graph([], with_loop);
 
         const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
-        assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
+        assert.deepEqual(users, new Set([Bob, Alice, Knud, Gertrud]));
     });
 });
