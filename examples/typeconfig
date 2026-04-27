@@ -1,0 +1,11 @@
+type EHR
+
+relation owner
+
+relation editor
+
+relation appender
+give editor
+
+relation viewer
+give editor

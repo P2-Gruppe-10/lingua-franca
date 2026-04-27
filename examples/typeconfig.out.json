@@ -1,0 +1,19 @@
+{
+  "type": "EHR",
+  "validRelations": [
+    "owner",
+    "editor",
+    "appender",
+    "viewer"
+  ],
+  "relationRules": [
+    {
+      "affected": "appender",
+      "give": "editor"
+    },
+    {
+      "affected": "viewer",
+      "give": "editor"
+    }
+  ]
+}
