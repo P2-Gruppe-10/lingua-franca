@@ -31,6 +31,14 @@ export default class Graph {
         return [];
     }
 
+    stringify(): string {
+        return JSON.stringify(this);
+    }
+
+    static fromJSON(json: string): Graph {
+        return JSON.parse(json) as Graph;
+    }
+
     /**
      * Given a Subject, return a list of all UserIds which match it.
      * A Subject can either be a UserId, in which case that UserId is returned.
