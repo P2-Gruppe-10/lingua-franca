@@ -16,20 +16,8 @@ give carer
 give editor
 give patient
 
-permission can_redact
-owner
-patient
+permission can_redact = owner OR patient
+permission can_edit = editor
+permission can_append = editor OR carer OR appender
 
-permission can_edit
-editor
-
-permission can_append
-editor
-carer
-appender
-
-permission can_view
-patient
-carer
-viewer
-editor
+permission can_view = patient OR carer OR viewer OR editor
