@@ -1,4 +1,4 @@
-import { describe, it } from "node:test";
+import { describe, it, after } from "node:test";
 import { promises as fs } from "node:fs";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
 import assert, { strict } from "node:assert";
@@ -6,6 +6,11 @@ import Graph from "../src/graph.ts";
 import { serializeConfig, deserializeConfig } from "../src/serialize.ts";
 
 describe("Serialization", { timeout: 1000 }, () => {
+    after(async () => {
+        try {
+            await fs.unlink("./config.json");
+        } catch {}
+    });
     it("should serialize a simple graph", async () => {
         const edges: Relation[] = [
             new Relation(
