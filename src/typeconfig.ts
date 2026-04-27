@@ -6,10 +6,16 @@ export interface Rule {
     give: string;
 }
 
+export interface Permission {
+    name: string;
+    grantedBy: Set<string>; // we only implement "sufficient" conditions because a "necessary" AND set of relations is quite a rare circumstance, especially for EHDS
+}
+
 export interface TypeconfigData {
     type: string | undefined;
     validRelations: Set<string>;
     relationRules: Set<Rule>;
+    permissions: Set<Permission>;
 }
 
 interface TypeconfigState extends TypeconfigData {
@@ -20,16 +26,19 @@ export class Typeconfig implements TypeconfigData {
     type: string;
     validRelations: Set<string>;
     relationRules: Set<Rule>;
+    permissions: Set<Permission>;
 
     // this is mostly just used by the fromFile method
     constructor(
         type: string,
         validRelations: Set<string>,
-        relationRules: Set<Rule>
+        relationRules: Set<Rule>,
+        permissions: Set<Permission>
     ) {
         this.type = type;
         this.validRelations = validRelations;
         this.relationRules = relationRules;
+        this.permissions = permissions;
     }
 
     async saveToFile(path: string) {
@@ -49,6 +58,7 @@ export class Typeconfig implements TypeconfigData {
             type: undefined,
             validRelations: new Set(),
             relationRules: new Set(),
+            permissions: new Set(),
             inside: undefined,
         };
 
@@ -69,7 +79,8 @@ export class Typeconfig implements TypeconfigData {
         return new Typeconfig(
             state.type,
             state.validRelations,
-            state.relationRules
+            state.relationRules,
+            state.permissions
         );
     }
 
@@ -87,6 +98,22 @@ export class Typeconfig implements TypeconfigData {
             Typeconfig.handleRelation(tokens, state);
             return;
         }
+        if (state.inside[0] === "permission") {
+            Typeconfig.handlePermission(tokens, state);
+            return;
+        }
+    }
+
+    private static handlePermission(tokens: string[], state: TypeconfigState) {
+        if (!state.validRelations.has(tokens[0]!)) {
+            throw new TypeconfigError(
+                `permission inclusion line "${tokens.join(" ")}" refers to a relation that doesn't exist`
+            );
+        }
+        let permission = [...state.permissions].find(
+            (permission) => permission.name === state.inside?.[1]!
+        );
+        permission?.grantedBy.add(tokens[0]!);
     }
 
     // handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
@@ -128,6 +155,14 @@ export class Typeconfig implements TypeconfigData {
             }
             case "relation": {
                 state.validRelations.add(tokens[1]!);
+                state.inside = tokens;
+                break;
+            }
+            case "permission": {
+                state.permissions.add({
+                    name: tokens[1]!,
+                    grantedBy: new Set(),
+                });
                 state.inside = tokens;
                 break;
             }

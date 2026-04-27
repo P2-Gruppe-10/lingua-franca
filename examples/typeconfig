@@ -9,3 +9,18 @@ give editor
 
 relation viewer
 give editor
+
+permission can_read
+viewer
+editor
+owner
+
+permission can_edit
+editor
+
+permission can_delete
+owner
+
+permission can_append
+appender
+editor
