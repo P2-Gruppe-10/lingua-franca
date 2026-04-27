@@ -1,35 +1,37 @@
 import express from "express";
-import { Graph } from "./graph.ts";
-import { Obj, Relation, UserSet } from "./acl.ts";
+import { Obj, UserSet } from "./acl.ts";
+import { deserializeConfig } from "./serialize.ts";
 
 const app = express();
 const port = 3000;
 
-app.get(
-    "/user/:UserId/relation/:Relation/objectName/:ObjectName/type/:Type",
-    (req, res) => {
-        //const mortenEhr = new Obj("EHR", "Morten's");
+let graph = await deserializeConfig();
 
+app.get(
+    "/user/:UserId/relation/:RelationName/objectId/:ObjectId/type/:Type",
+    (req, res) => {
         console.log(
-            req.params.ObjectName,
-            req.params.Relation,
+            req.params.ObjectId,
+            req.params.RelationName,
             req.params.Type,
             req.params.UserId
         );
 
-        let object = new Obj(req.params.Type, req.params.ObjectName);
+        let object = new Obj(req.params.Type, req.params.ObjectId);
 
         let users = graph.resolveSubjects(
-            new UserSet(object, req.params.Relation)
+            new UserSet(object, req.params.RelationName)
         );
 
         console.log(users);
 
+        res.statusCode = 200;
+
         if (users.has(Number(req.params.UserId))) {
             res.send("The docter has permission to the file");
-        }
+        } else res.send("The doctor does not have persmission to the file");
 
-        res.send("The doctor does not have persmission to the file");
+        res.end();
     }
 );
 
