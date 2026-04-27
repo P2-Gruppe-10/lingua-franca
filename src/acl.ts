@@ -13,6 +13,10 @@ export class Obj {
         this.identifier = identifier;
     }
 
+    isEqual(other: Obj): boolean {
+        return this.type === other.type && this.identifier === other.identifier;
+    }
+
     toString(): string {
         return `${this.type}:${this.identifier}`;
     }

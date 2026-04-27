@@ -26,7 +26,7 @@ export default class Graph {
 
     getRelationsTo(vertex: Vertex): Relation[] {
         if (vertex instanceof Obj) {
-            return this.edges.filter((edge) => vertex === edge.object);
+            return this.edges.filter((edge) => vertex.isEqual(edge.object));
         }
         return [];
     }
@@ -59,7 +59,7 @@ export default class Graph {
             // Resolve the subjects for each of the relations found (kind of like a for loop)
             .map((rel) => this.resolveSubjects(rel.subject))
             // Lastly, since `resolveSubjects` returns a set of users, merge them into 1 set
-            .reduce((users, resolved) => users.union(resolved));
+            .reduce((users, resolved) => users.union(resolved), new Set());
 
         return users;
     }

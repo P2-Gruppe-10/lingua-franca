@@ -14,5 +14,9 @@ export async function deserializeConfig(): Promise<Graph> {
     const config = await fs.readFile("./config.json");
 
     //Converts config.json contents to Graph and returns this
-    return Graph.fromJSON(config.toString());
+    const graph = Graph.fromJSON(config.toString());
+
+    Object.setPrototypeOf(graph, Graph.prototype);
+
+    return graph;
 }
