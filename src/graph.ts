@@ -31,10 +31,12 @@ export default class Graph {
         return [];
     }
 
+    //Converts Graph to JSON compatible string
     stringify(): string {
         return JSON.stringify(this);
     }
 
+    //Converts JSON string to graph
     static fromJSON(json: string): Graph {
         return JSON.parse(json) as Graph;
     }
