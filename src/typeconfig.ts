@@ -22,6 +22,14 @@ interface TypeconfigState extends TypeconfigData {
     inside: string[] | undefined;
 }
 
+function splitByWhitespace(string: string): string[] {
+    return string.trim().split(/\s+/); // regular expression that takes 1 or more spaces
+}
+
+function splitFileLines(string: string): string[] {
+    return string.split(/\r?\n/); // splits by \n but also optionally \r because Windows puts those sometimes
+}
+
 export class Typeconfig implements TypeconfigData {
     type: string;
     validRelations: Set<string>;
@@ -64,16 +72,13 @@ export class Typeconfig implements TypeconfigData {
 
         let file = await readFile(path, { encoding: "utf-8" });
 
-        // we remove \r's because windows users can potentially be putting those in there...
-        file.replaceAll("\r", "")
-            .split("\n")
-            .forEach((line) => {
-                Typeconfig.readLine(line, state);
-            });
+        splitFileLines(file).forEach((line, index) => {
+            Typeconfig.readLine(line, index + 1, state);
+        });
 
         // by the end of the parsing, a type is needed
         if (state.type === undefined) {
-            throw new TypeconfigError("no type specified");
+            throw new TypeconfigError("No type was ever specified.");
         }
 
         return new Typeconfig(
@@ -84,91 +89,169 @@ export class Typeconfig implements TypeconfigData {
         );
     }
 
-    private static readLine(line: string, state: TypeconfigState) {
-        if (line.replaceAll(" ", "") === "") {
+    private static readLine(
+        line: string,
+        lineNumber: number,
+        state: TypeconfigState
+    ) {
+        if (line.trim() === "") {
             state.inside = undefined; // also useful because it lets us know when we are leaving a scope
             return;
         }
-        const tokens = line.split(" ");
-        if (state.inside === undefined) {
-            Typeconfig.handleGlobal(tokens, state);
-            return;
-        }
-        if (state.inside[0] === "relation") {
-            Typeconfig.handleRelation(tokens, state);
-            return;
-        }
-        if (state.inside[0] === "permission") {
-            Typeconfig.handlePermission(tokens, state);
-            return;
+        const tokens = splitByWhitespace(line);
+        try {
+            if (state.inside === undefined) {
+                Typeconfig.handleGlobal(tokens, state);
+                return;
+            }
+            if (state.inside[0] === "relation") {
+                Typeconfig.handleRelation(tokens, state);
+                return;
+            }
+        } catch (error) {
+            if (error instanceof TypeconfigError) {
+                throw new TypeconfigError(
+                    `Error on line ${lineNumber} ("${line.trim()}")\n  -> ${error.message}`
+                );
+            }
+            throw error;
         }
     }
 
     private static handlePermission(tokens: string[], state: TypeconfigState) {
-        if (!state.validRelations.has(tokens[0]!)) {
+        const [_, permissionName, equalsSign, ...logicTokens] = tokens;
+        if (!permissionName || equalsSign !== "=" || logicTokens.length === 0) {
             throw new TypeconfigError(
-                `permission inclusion line "${tokens.join(" ")}" refers to a relation that doesn't exist`
+                `Permissions must be defined like so: permission [name] = [relation] OR [relation] OR ...`
             );
         }
-        let permission = [...state.permissions].find(
-            (permission) => permission.name === state.inside?.[1]!
+
+        const alreadyExists = [...state.permissions].some(
+            (p) => p.name === permissionName
         );
-        permission?.grantedBy.add(tokens[0]!);
+        if (alreadyExists) {
+            throw new TypeconfigError(
+                `Permission "${permissionName}" is already defined.`
+            );
+        }
+
+        if (logicTokens.length % 2 === 0) {
+            throw new TypeconfigError(
+                `Malformed permission logic. Did you leave a dangling "OR" or forget a relation?`
+            ); // if the length of the logic tokens are equal, it can't possibly be relation names with ORs between em, since that would be an odd amount of entries
+        }
+
+        const grantedBy = new Set<string>();
+
+        logicTokens.forEach((token, index) => {
+            if (index % 2 === 0) {
+                // even entry indices should be relations ([relation, or, relation] has relations on index 0 and 2)
+                if (token === "OR") {
+                    throw new TypeconfigError(
+                        `Unexpected "OR". Expected a relation name.`
+                    );
+                }
+                if (!state.validRelations.has(token)) {
+                    throw new TypeconfigError(
+                        `Relation "${token}" is not defined.`
+                    );
+                }
+                grantedBy.add(token);
+            } else {
+                // odd entry indices should be OR ([relation, or, relation] has "or" on index 1)
+                if (token !== "OR") {
+                    throw new TypeconfigError(
+                        `Expected "OR" between relations, got "${token}".`
+                    );
+                }
+            }
+        });
+
+        state.permissions.add({
+            name: permissionName,
+            grantedBy: grantedBy,
+        });
     }
 
     // handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
     private static handleRelation(tokens: string[], state: TypeconfigState) {
-        if (tokens.length < 2) {
+        const [command, target, ...extra] = tokens;
+        if (!command || !target || extra.length > 0) {
             throw new TypeconfigError(
-                `relation must have 2 tokens; expected something like "give owner", got ${tokens.join(" ")}`
+                `Relation must have 2 tokens (e.g. "give owner"), got ${tokens.length}`
             );
         }
-        if (tokens[0] === "give") {
-            if (!state.validRelations.has(tokens[1]!)) {
-                throw new TypeconfigError(
-                    `userset rewrite line "${tokens.join(" ")}" refers to a relation that doesn't exist`
-                );
+        if (command === "give") {
+            if (!state.validRelations.has(target)) {
+                throw new TypeconfigError(`Relation ${target} is not defined.`);
             }
+
+            const affected = state.inside?.[1];
+            if (!affected) {
+                // theoretically this error should never ever happen. but makes typescript happy c:
+                throw new TypeconfigError("Missing current relation context.");
+            }
+
             state.relationRules.add({
-                affected: state.inside?.[1]!,
-                give: tokens[1]!,
+                affected: affected,
+                give: target,
             });
+        } else {
+            throw new TypeconfigError(
+                `Invalid command "${command}" inside a relation block. Expected "give", or did you forget a blank line?`
+            );
         }
     }
 
-    // handles the lines where we are not inside anything; currently this is for setting the type of a typeconfig, and starting a relation definition
+    // handles the lines where we are not inside anything; currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
     private static handleGlobal(tokens: string[], state: TypeconfigState) {
-        if (tokens.length < 2) {
+        const [keyword, value, ...extra] = tokens;
+
+        if (!keyword || !value) {
             throw new TypeconfigError(
-                `header must have 2 tokens; expected something like "type doc" or "relation viewer", got ${tokens.join(" ")}`
+                `Header must have at least 2 tokens (e.g. "type doc", "relation viewer", "permission can_view = viewer"), got ${tokens.length}.`
             );
         }
-        switch (tokens[0]) {
+
+        switch (keyword) {
             case "type": {
-                if (typeof state.type === "string") {
+                if (extra.length > 0) {
                     throw new TypeconfigError(
-                        `type override; type ${state.type} was already defined, got type ${tokens[1]}`
+                        `"type" definition should only have 2 tokens, got ${tokens.length}.`
                     );
                 }
-                state.type = tokens[1];
+                if (typeof state.type === "string") {
+                    throw new TypeconfigError(
+                        `Type is already defined as "${state.type}".`
+                    );
+                }
+                state.type = value;
                 break;
             }
             case "relation": {
-                state.validRelations.add(tokens[1]!);
+                if (extra.length > 0) {
+                    throw new TypeconfigError(
+                        `"relation" definition should only have 2 tokens, got ${tokens.length}.`
+                    );
+                }
+                if (state.validRelations.has(value)) {
+                    throw new TypeconfigError(
+                        `Relation ${value} is already defined.`
+                    );
+                }
+                state.validRelations.add(value);
                 state.inside = tokens;
                 break;
             }
             case "permission": {
-                state.permissions.add({
-                    name: tokens[1]!,
-                    grantedBy: new Set(),
-                });
-                state.inside = tokens;
+                Typeconfig.handlePermission(tokens, state);
                 break;
+            }
+            default: {
+                throw new TypeconfigError(
+                    `Unknown keyword "${keyword}". Expected "type", "relation", or "permission".`
+                );
             }
         }
     }
 }
-
-const myConfig = await Typeconfig.fromFile("examples/typeconfig");
-myConfig.saveToFile("examples/typeconfig.out.json");
