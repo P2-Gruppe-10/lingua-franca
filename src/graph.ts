@@ -92,7 +92,7 @@ describe("graph", () => {
         let Gertrud = 3;
         let Martin = 4;
 
-        let egdes: Relation[] = [
+        let edges: Relation[] = [
             new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
             new Relation(læge, "member", new UserSet(overLæge, "admin")),
             new Relation(læge, "member", new UserSet(overLæge, "member")),
@@ -104,7 +104,7 @@ describe("graph", () => {
             new Relation(overLæge, "ASS!!", Martin),
         ];
 
-        let graph = new Graph(vertices, egdes);
+        let graph = new Graph(vertices, edges);
         console.log(graph.edgeStrings());
 
         let users = graph.resolveSubjects2(new UserSet(mortenEhr, "viewer"));
