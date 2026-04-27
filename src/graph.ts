@@ -33,26 +33,12 @@ class Graph {
         return [];
     }
 
+    /**
+     * Given a Subject, return a list of all UserIds which match it.
+     * A Subject can either be a UserId, in which case that UserId is returned.
+     * Or it can be a UserSet, which match multiple UserIds.
+     */
     resolveSubjects(subject: Subject): UserId[] {
-        if (typeof subject === "number") {
-            return [subject];
-        }
-
-        let foundUsers: UserId[] = [];
-        const relations = this.getRelationsTo(subject.object).filter(
-            (relation) => subject.relationName === relation.name
-        );
-
-        for (const relation of relations) {
-            foundUsers = foundUsers.concat(
-                this.resolveSubjects(relation.subject)
-            );
-        }
-
-        return foundUsers;
-    }
-
-    resolveSubjects2(subject: Subject): UserId[] {
         if (typeof subject === "number") return [subject];
 
         // We know the subject is a userset
@@ -63,7 +49,7 @@ class Graph {
             // Next, only take the relations which have the correct name
             .filter((rel) => rel.name === userset.relationName)
             // Lastly, resolve the subjects for each of the relations found (kind of like a for loop)
-            .flatMap((rel) => this.resolveSubjects2(rel.subject));
+            .flatMap((rel) => this.resolveSubjects(rel.subject));
 
         // Deduplicate, i.e. remove all users who appear twice
         const uniqueUsers = new Set(users);
@@ -73,43 +59,44 @@ class Graph {
     }
 }
 
-describe("graph", () => {
+describe("A graph", () => {
+    const mortenEhr = new Obj("EHR", "Morten's");
+
+    const læge = new Obj("Group", "Læge");
+    const overLæge = new Obj("Group", "Over Læge");
+
+    const Bob = 0;
+    const Alice = 1;
+    const Knud = 2;
+    const Gertrud = 3;
+    const Martin = 4;
+
+    const edges: Relation[] = [
+        new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
+        new Relation(læge, "member", new UserSet(overLæge, "admin")),
+        new Relation(læge, "member", new UserSet(overLæge, "member")),
+        new Relation(overLæge, "admin", Bob),
+        new Relation(overLæge, "member", Alice),
+        new Relation(læge, "member", Knud),
+        new Relation(mortenEhr, "viewer", Alice),
+        new Relation(mortenEhr, "viewer", Gertrud),
+        new Relation(overLæge, "ASS!!", Martin),
+    ];
+
     it("should resolve all subjects", () => {
-        let vertices: Vertex[] = [];
+        const graph = new Graph([], edges);
 
-        //object: Obj;
-        //relation: RelationName;
-        //subject: Subject;
+        const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
+        assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
+    });
 
-        let mortenEhr = new Obj("EHR", "morten");
+    it("should handle loops", () => {
+        const with_loop = edges.concat([
+            new Relation(overLæge, "member", new UserSet(læge, "member")),
+        ]);
+        const graph = new Graph([], with_loop);
 
-        let læge = new Obj("group", "læge");
-        let overLæge = new Obj("group", "overlæge");
-
-        let Bob = 0;
-        let Alice = 1;
-        let Knud = 2;
-        let Gertrud = 3;
-        let Martin = 4;
-
-        let edges: Relation[] = [
-            new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
-            new Relation(læge, "member", new UserSet(overLæge, "admin")),
-            new Relation(læge, "member", new UserSet(overLæge, "member")),
-            new Relation(overLæge, "admin", Bob),
-            new Relation(overLæge, "member", Alice),
-            new Relation(læge, "member", Knud),
-            new Relation(mortenEhr, "viewer", Alice),
-            new Relation(mortenEhr, "viewer", Gertrud),
-            new Relation(overLæge, "ASS!!", Martin),
-        ];
-
-        let graph = new Graph(vertices, edges);
-        console.log(graph.edgeStrings());
-
-        let users = graph.resolveSubjects2(new UserSet(mortenEhr, "viewer"));
-        console.log(users);
-
+        const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
         assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
     });
 });
