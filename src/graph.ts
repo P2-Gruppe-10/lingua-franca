@@ -17,6 +17,15 @@ class Graph {
         this.edges = edges;
     }
 
+    // Methods for printing contents of a graph
+    vertexStrings(): string[] {
+        return this.vertices.map((vertex) => vertex.toString());
+    }
+
+    edgeStrings(): string[] {
+        return this.edges.map((edge) => edge.toString());
+    }
+
     getRelationsTo(vertex: Vertex): Relation[] {
         if (vertex instanceof Obj) {
             return this.edges.filter((edge) => vertex === edge.object);
@@ -72,10 +81,10 @@ describe("graph", () => {
         //relation: RelationName;
         //subject: Subject;
 
-        let mortenEhr = new Obj("EHR", "Morten's");
+        let mortenEhr = new Obj("EHR", "morten");
 
-        let læge = new Obj("Group", "Læge");
-        let overLæge = new Obj("Group", "Over Læge");
+        let læge = new Obj("group", "læge");
+        let overLæge = new Obj("group", "overlæge");
 
         let Bob = 0;
         let Alice = 1;
@@ -83,7 +92,7 @@ describe("graph", () => {
         let Gertrud = 3;
         let Martin = 4;
 
-        let egdes: Relation[] = [
+        let edges: Relation[] = [
             new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
             new Relation(læge, "member", new UserSet(overLæge, "admin")),
             new Relation(læge, "member", new UserSet(overLæge, "member")),
@@ -95,9 +104,11 @@ describe("graph", () => {
             new Relation(overLæge, "ASS!!", Martin),
         ];
 
-        let graph = new Graph(vertices, egdes);
+        let graph = new Graph(vertices, edges);
+        console.log(graph.edgeStrings());
 
         let users = graph.resolveSubjects2(new UserSet(mortenEhr, "viewer"));
+        console.log(users);
 
         assert.deepEqual(users, [Bob, Alice, Knud, Gertrud]);
     });

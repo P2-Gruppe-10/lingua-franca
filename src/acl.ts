@@ -12,6 +12,10 @@ export class Obj {
         this.type = type;
         this.identifier = identifier;
     }
+
+    toString(): string {
+        return `${this.type}:${this.identifier}`;
+    }
 }
 
 export type RelationName = string;
@@ -25,6 +29,10 @@ export class UserSet {
     constructor(object: Obj, relation: RelationName) {
         this.object = object;
         this.relationName = relation;
+    }
+
+    toString(): string {
+        return `${this.object.toString()}#${this.relationName}`;
     }
 }
 
@@ -42,5 +50,10 @@ export class Relation {
         this.object = object;
         this.name = relation;
         this.subject = subject;
+    }
+
+    // Same serialization style as the Zanzibar paper https://authzed.com/zanzibar
+    toString(): string {
+        return `${this.object.toString()}#${this.name}@${this.subject.toString()}`;
     }
 }
