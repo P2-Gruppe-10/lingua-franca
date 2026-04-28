@@ -118,7 +118,8 @@ export class Typeconfig implements TypeconfigData {
         } catch (error) {
             if (error instanceof TypeconfigError) {
                 throw new TypeconfigError(
-                    `Error on line ${lineNumber} ("${line.trim()}")\n  -> ${error.message}`
+                    `Error on line ${lineNumber} ("${line.trim()}")\n  -> ${error.message}`,
+                    { cause: error }
                 );
             }
             throw error;
