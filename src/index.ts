@@ -1,4 +1,5 @@
 import express from "express";
+import bodyParser from "body-parser";
 import { Obj, UserSet } from "./acl.ts";
 import { deserializeConfig } from "./serialize.ts";
 
@@ -7,33 +8,34 @@ const port = 3000;
 
 let graph = await deserializeConfig();
 
-app.get(
-    "/user/:UserId/relation/:RelationName/objectId/:ObjectId/type/:Type",
-    (req, res) => {
-        console.log(
-            req.params.ObjectId,
-            req.params.RelationName,
-            req.params.Type,
-            req.params.UserId
-        );
+app.use(bodyParser.json());
 
-        let object = new Obj(req.params.Type, req.params.ObjectId);
+app.get("/authorize", (req, res) => {
+    //   "/user/:UserId/relation/:RelationName/objectId/:ObjectId/type/:Type",
 
-        let users = graph.resolveSubjects(
-            new UserSet(object, req.params.RelationName)
-        );
+    console.log(
+        req.body.ObjectId,
+        req.body.RelationName,
+        req.body.Type,
+        req.body.UserId
+    );
 
-        console.log(users);
+    let object = new Obj(req.body.Type, req.body.ObjectId);
 
-        res.statusCode = 200;
+    let users = graph.resolveSubjects(
+        new UserSet(object, req.body.RelationName)
+    );
 
-        if (users.has(Number(req.params.UserId))) {
-            res.send("The docter has permission to the file");
-        } else res.send("The doctor does not have persmission to the file");
+    console.log(users);
 
-        res.end();
-    }
-);
+    res.statusCode = 200;
+
+    if (users.has(Number(req.body.UserId))) {
+        res.send("The docter has permission to the file");
+    } else res.send("The doctor does not have persmission to the file");
+
+    res.end();
+});
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
