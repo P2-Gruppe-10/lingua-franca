@@ -5,7 +5,7 @@ import { deserializeConfig } from "./serialize.ts";
 const app = express();
 const port = 3000;
 
-let graph = await deserializeConfig();
+const graph = await deserializeConfig();
 
 app.get(
     "/user/:UserId/relation/:RelationName/objectId/:ObjectId/type/:Type",
@@ -17,9 +17,9 @@ app.get(
             req.params.UserId
         );
 
-        let object = new Obj(req.params.Type, req.params.ObjectId);
+        const object = new Obj(req.params.Type, req.params.ObjectId);
 
-        let users = graph.resolveSubjects(
+        const users = graph.resolveSubjects(
             new UserSet(object, req.params.RelationName)
         );
 
