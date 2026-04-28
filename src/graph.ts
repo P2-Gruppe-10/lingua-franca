@@ -1,5 +1,5 @@
 import type { Subject, UserId } from "./acl.ts";
-import { Obj, Relation } from "./acl.ts";
+import { Obj, Relation, UserSet } from "./acl.ts";
 
 type Vertex = Obj | UserId;
 
@@ -31,14 +31,117 @@ export default class Graph {
         return [];
     }
 
-    //Converts Graph to JSON compatible string
+    /**
+     * Converts Graph to JSON compatible string
+     */
     stringify(): string {
         return JSON.stringify(this);
     }
 
-    //Converts JSON string to graph
+    /**
+     * Converts a JSON string into a `Graph`.
+     *
+     * @param json The json string representing a `Graph`.
+     *
+     * @throws {SyntaxError} if `json` is not valid JSON.
+     *
+     * @throws {Error} if `json` has invalid configuration.
+     */
     static fromJSON(json: string): Graph {
-        return JSON.parse(json) as Graph;
+        const isRelation = (o: object) =>
+            Object.hasOwn(o, "object") &&
+            Object.hasOwn(o, "name") &&
+            Object.hasOwn(o, "subject");
+        const isObj = (o: object) =>
+            Object.hasOwn(o, "type") && Object.hasOwn(o, "identifier");
+        const isUserSet = (o: object) =>
+            Object.hasOwn(o, "object") && Object.hasOwn(o, "relationName");
+        const isGraph = (o: object) =>
+            Object.hasOwn(o, "vertices") && Object.hasOwn(o, "edges");
+
+        /**
+         * Takes in a default JS object, and converts it into the correct type.
+         */
+        const reviver = (_key: string, val: any) => {
+            if (typeof val !== "object" || Array.isArray(val)) return val;
+
+            if (isRelation(val)) {
+                if (!(val.object instanceof Obj)) {
+                    throw new Error(
+                        `Relations 'object' field is not of type 'Obj', ${JSON.stringify(val.object)}`
+                    );
+                }
+
+                if (typeof val.name !== "string") {
+                    throw new Error(
+                        `Relations 'name' field is not of type 'string', ${JSON.stringify(val.name)}`
+                    );
+                }
+
+                if (
+                    typeof val.subject !== "number" &&
+                    !(val.subject instanceof UserSet)
+                ) {
+                    throw new Error(
+                        `Relations 'subject' field is not of type 'UserId' or 'UserSet', ${JSON.stringify(val.subject)}`
+                    );
+                }
+
+                return new Relation(val.object, val.name, val.subject);
+            }
+
+            if (isObj(val)) {
+                if (typeof val.type !== "string") {
+                    throw new Error(
+                        `Objs 'type' field is not of type 'string', ${JSON.stringify(val.type)}`
+                    );
+                }
+
+                if (typeof val.identifier !== "string") {
+                    throw new Error(
+                        `Objs 'identifier' field is not of type 'string', ${JSON.stringify(val.identifier)}`
+                    );
+                }
+
+                return new Obj(val.type, val.identifier);
+            }
+
+            if (isUserSet(val)) {
+                if (!(val.object instanceof Obj)) {
+                    throw new Error(
+                        `UserSets 'object' field not of type 'Obj': ${JSON.stringify(val.object)}`
+                    );
+                }
+
+                if (typeof val.relationName !== "string") {
+                    throw new Error(
+                        `UserSets 'relationName' field is not of type 'string', ${JSON.stringify(val.relationName)}`
+                    );
+                }
+
+                return new UserSet(val.object, val.relationName);
+            }
+
+            if (isGraph(val)) {
+                if (!val.edges.every((rel: any) => rel instanceof Relation)) {
+                    throw new Error(
+                        "The graphs 'edges' field contains object which is not of type 'Relation'"
+                    );
+                }
+
+                // TODO: Apply same check for vertices when they are used
+
+                return new Graph(val.vertices, val.edges);
+            }
+
+            throw new Error(
+                `Graph JSON has invalid object "${JSON.stringify(val)}"`
+            );
+        };
+
+        const graph: Graph = JSON.parse(json, reviver);
+
+        return graph;
     }
 
     /**
