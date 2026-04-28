@@ -22,7 +22,7 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const graph = new Graph([], edges);
 
-        serializeConfig(graph);
+        await serializeConfig(graph);
 
         const read = await fs.readFile("./config.json");
 

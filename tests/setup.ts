@@ -1,5 +1,9 @@
+import { promises as fs } from "node:fs";
+
 export async function globalSetup() {
-    console.log("Global setup executed");
+    // entering tmp dir so we dont pollute the actual project with testing files
+    await fs.mkdir("/tmp/lingua-franca", { recursive: true });
+    process.chdir("/tmp/lingua-franca");
 }
 
 export async function globalTeardown() {
