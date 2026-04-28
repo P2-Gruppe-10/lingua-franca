@@ -173,7 +173,9 @@ export class Typeconfig implements TypeconfigData {
         });
     }
 
-    // handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
+    /**
+     * handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
+     */
     private static handleRelation(tokens: string[], state: TypeconfigState) {
         const [command, target, ...extra] = tokens;
         if (!command || !target || extra.length > 0) {
@@ -203,7 +205,10 @@ export class Typeconfig implements TypeconfigData {
         }
     }
 
-    // handles the lines where we are not inside anything; currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
+    /*
+     * handles the lines where we are not inside anything
+     * currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
+     */
     private static handleGlobal(tokens: string[], state: TypeconfigState) {
         const [keyword, value, ...extra] = tokens;
 
