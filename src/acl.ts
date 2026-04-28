@@ -50,9 +50,9 @@ export class Relation {
     name: RelationName;
     subject: Subject;
 
-    constructor(object: Obj, relation: RelationName, subject: Subject) {
+    constructor(object: Obj, name: RelationName, subject: Subject) {
         this.object = object;
-        this.name = relation;
+        this.name = name;
         this.subject = subject;
     }
 
