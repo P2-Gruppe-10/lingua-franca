@@ -30,6 +30,9 @@ function splitFileLines(string: string): string[] {
     return string.split(/\r?\n/); // splits by \n but also optionally \r because Windows puts those sometimes
 }
 
+/**
+ * The configuration for a type of object
+ */
 export class Typeconfig implements TypeconfigData {
     type: string;
     validRelations: Set<string>;
@@ -60,9 +63,13 @@ export class Typeconfig implements TypeconfigData {
         );
     }
 
+    /**
+     * Parses a file into a new Typeconfig object.
+     * This is the intended way to instantiate the Typeconfig class.
+     */
     static async fromFile(path: string) {
         // temporary state that lets type be undefined, and has an inside field to know where we are in the parsing process
-        let state: TypeconfigState = {
+        const state: TypeconfigState = {
             type: undefined,
             validRelations: new Set(),
             relationRules: new Set(),
@@ -70,7 +77,7 @@ export class Typeconfig implements TypeconfigData {
             inside: undefined,
         };
 
-        let file = await readFile(path, { encoding: "utf-8" });
+        const file = await readFile(path, { encoding: "utf-8" });
 
         splitFileLines(file).forEach((line, index) => {
             Typeconfig.readLine(line, index + 1, state);
@@ -205,7 +212,7 @@ export class Typeconfig implements TypeconfigData {
         }
     }
 
-    /*
+    /**
      * handles the lines where we are not inside anything
      * currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
      */
