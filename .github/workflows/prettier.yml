@@ -4,14 +4,17 @@ on:
   push:
 permissions: {}
 jobs:
-  prettier:
+  autofix:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - run: |
-          npm ci
-          npx prettier "**/*.ts" --write
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+      - run: npm ci
+      - run: npx prettier "**/*.ts" --write
+      - run: npx eslint . --ext .js,.jsx,.ts,.tsx --fix
       - uses: autofix-ci/action@v1
         with:
-          commit-message: "chore: formatting"
+          commit-message: "chore: fix linting and formatting"
