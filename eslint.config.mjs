@@ -6,6 +6,13 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig(
     js.configs.recommended,
-    tseslint.configs.recommendedTypeChecked,
-    tseslint.configs.stylisticTypeChecked
+    tseslint.configs.stylisticTypeChecked,
+    tseslint.configs.strictTypeChecked,
+    {
+        languageOptions: {
+            parserOptions: {
+                projectService: true,
+            },
+        },
+    }
 );
