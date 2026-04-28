@@ -1,14 +1,15 @@
-import { describe, it, after } from "node:test";
+import { describe, it, before, after } from "node:test";
 import { promises as fs } from "node:fs";
 import assert, { strict } from "node:assert";
 import { Typeconfig } from "../src/typeconfig.ts";
 import { TypeconfigError } from "../src/error.ts";
 
-describe("The Typeconfig class", { timeout: 2000 }, async () => {
+describe("The Typeconfig class", { timeout: 2000 }, () => {
     const validTestFilePath = "./valid_test.typeconfig";
     const errorTestFilePath = "./error_test.typeconfig";
     const outFilePath = "./test_out.json";
-    const validConfig = `
+    before(async () => {
+        const validConfig = `
 type doc
 
 relation viewer
@@ -23,7 +24,8 @@ permission read = viewer OR editor
 permission write = editor OR owner
 permission delete = owner
 `;
-    await fs.writeFile(validTestFilePath, validConfig);
+        await fs.writeFile(validTestFilePath, validConfig);
+    });
 
     // clean up temporary files after tests run
     after(async () => {
@@ -106,6 +108,8 @@ permission read = viewer OR
 type doc
 
 relation viewer
+
+relation editor
 
 relation viewer
 `;
