@@ -32,12 +32,15 @@
     "serve": "npm run build && node ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
+    "eslint": "^10.2.1",
     "prettier": "3.8.3",
     "pretty-quick": "^4.2.2",
     "simple-git-hooks": "^2.13.1",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.1"
   },
   "dependencies": {
     "express": "^5.2.1"
