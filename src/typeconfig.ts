@@ -268,6 +268,3 @@ export class Typeconfig implements TypeconfigData {
         }
     }
 }
-
-let typeconfig = Typeconfig.fromFile("./schemas/EHR.tc");
-console.log(typeconfig);
