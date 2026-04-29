@@ -6,6 +6,8 @@ import tseslint from "typescript-eslint";
 
 export default defineConfig(
     js.configs.recommended,
+    tseslint.configs.stylisticTypeChecked,
+    tseslint.configs.strictTypeChecked,
     {
         languageOptions: {
             parserOptions: {
@@ -17,10 +19,12 @@ export default defineConfig(
         },
     },
     {
-        extends: [
-            tseslint.configs.stylisticTypeChecked,
-            tseslint.configs.strictTypeChecked,
-        ],
-        ignores: ["./**/*.test.ts"],
+        rules: {
+            "@typescript-eslint/no-floating-promises": "off",
+        },
+        files: ["./**/*.test.ts"],
     }
+    // {
+    //     extends: [],
+    // }
 );
