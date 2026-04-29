@@ -11,7 +11,7 @@
     "target": "esnext",
     // For nodejs:
     "lib": ["esnext"],
-    "types": ["node"],
+    "types": ["node", "express"],
 
     // Other Outputs
     "sourceMap": true,
@@ -38,13 +38,10 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    
+
     // Custom
     "rewriteRelativeImportExtensions": true,
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": true
   },
-  "exclude": [
-    "./tests/**/*",
-    "./dist/**/*"
-  ]
+  "exclude": ["./tests/**/*", "./dist/**/*"]
 }
