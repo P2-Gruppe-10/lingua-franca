@@ -6,7 +6,7 @@ import { deserializeConfig } from "./serialize.ts";
 const app = express();
 const port = 3000;
 
-let graph = await deserializeConfig();
+const graph = await deserializeConfig();
 
 app.use(bodyParser.json());
 

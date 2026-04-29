@@ -2,9 +2,8 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
-
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
@@ -17,11 +16,9 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-
     // Style Options
     "noImplicitReturns": true,
     // "noImplicitOverride": true,
@@ -29,7 +26,6 @@
     "noUnusedParameters": true,
     // "noFallthroughCasesInSwitch": true,
     // "noPropertyAccessFromIndexSignature": true,
-
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
@@ -43,5 +39,6 @@
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true
   },
-  "exclude": ["./tests/**/*", "./dist/**/*"]
+  "exclude": ["./dist/**/*"],
+  "include": ["./src/**/*", "./tests/**/*", "./eslint.config.js"]
 }
