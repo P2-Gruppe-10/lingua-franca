@@ -27,7 +27,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "scripts": {
-    "test": "node --test",
+    "test": "node --test --test-global-setup=./tests/setup.ts",
     "build": "tsc",
     "serve": "npm run build && node ."
   },
@@ -44,6 +44,7 @@
     "typescript-eslint": "^8.59.1"
   },
   "dependencies": {
+    "body-parser": "^2.2.2",
     "express": "^5.2.1"
   }
 }

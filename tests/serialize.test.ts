@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import { promises as fs } from "node:fs";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
-import assert, { strict } from "node:assert";
+import { strict } from "node:assert";
 import Graph from "../src/graph.ts";
 import { serializeConfig, deserializeConfig } from "../src/serialize.ts";
 
@@ -17,7 +17,7 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const graph = new Graph([], edges);
 
-        serializeConfig(graph);
+        await serializeConfig(graph);
 
         const read = await fs.readFile("./config.json");
 
@@ -53,10 +53,10 @@ describe("Serialization", { timeout: 1000 }, () => {
     it("should serialize the graph", async () => {
         const graph = new Graph([], edges);
 
-        serializeConfig(graph);
+        await serializeConfig(graph);
 
         const deserializedGraph = await deserializeConfig();
 
-        assert.deepEqual(deserializedGraph, graph);
+        strict.deepEqual(deserializedGraph, graph);
     });
 });

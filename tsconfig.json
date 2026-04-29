@@ -11,6 +11,7 @@
     // For nodejs:
     "lib": ["esnext"],
     "types": ["node", "express"],
+
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
@@ -33,6 +34,7 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+
     // Custom
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true
