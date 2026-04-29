@@ -62,6 +62,7 @@ export default class Graph {
         /**
          * Takes in a default JS object, and converts it into the correct type.
          */
+        /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
         const reviver = (_key: string, val: any) => {
             if (typeof val !== "object" || Array.isArray(val)) return val;
 
@@ -138,7 +139,9 @@ export default class Graph {
                 `Graph JSON has invalid object "${JSON.stringify(val)}"`
             );
         };
+        /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const graph: Graph = JSON.parse(json, reviver);
 
         return graph;
