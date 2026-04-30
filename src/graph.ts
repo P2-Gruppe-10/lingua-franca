@@ -3,6 +3,14 @@ import { Obj, Relation, UserSet } from "./acl.ts";
 
 type Vertex = Obj | UserId;
 
+function verticesAreEqual(a: Vertex, b: Vertex): boolean {
+    if (typeof a === "number") {
+        return a === b;
+    }
+
+    return (a as Obj).isEqual(b as Obj);
+}
+
 /**
  * Graph containing relations and vertices between them.
  */

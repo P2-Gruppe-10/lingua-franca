@@ -35,6 +35,13 @@ export class UserSet {
         this.relationName = relation;
     }
 
+    isEqual(other: UserSet): boolean {
+        return (
+            this.object.isEqual(other.object) &&
+            this.relationName === other.relationName
+        );
+    }
+
     toString(): string {
         return `${this.object.toString()}#${this.relationName}`;
     }
@@ -42,6 +49,15 @@ export class UserSet {
 
 export type UserId = number;
 export type Subject = UserId | UserSet;
+
+export function subjectsAreEqual(a: Subject, b: Subject): boolean {
+    if (typeof a === "number") {
+        return a === b;
+    }
+
+    return (a as UserSet).isEqual(b as UserSet);
+}
+
 /**
  * The description of a relation between subjects and an object.
  */
@@ -54,6 +70,14 @@ export class Relation {
         this.object = object;
         this.name = name;
         this.subject = subject;
+    }
+
+    isEqual(other: Relation): boolean {
+        return (
+            this.object.isEqual(other.object) &&
+            this.name === other.name &&
+            subjectsAreEqual(this.subject, other.subject)
+        );
     }
 
     // Same serialization style as the Zanzibar paper https://authzed.com/zanzibar
