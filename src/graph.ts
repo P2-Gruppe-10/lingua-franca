@@ -23,6 +23,16 @@ export default class Graph {
         this.edges = edges;
     }
 
+    vertexInGraph(vertex: Vertex): boolean {
+        return this.vertices.some((v) => verticesAreEqual(v, vertex));
+    }
+
+    subjectInGraph(subject: Subject): boolean {
+        let vertex: Vertex =
+            typeof subject === "number" ? subject : subject.object;
+        return this.vertexInGraph(vertex);
+    }
+
     // Methods for printing contents of a graph
     vertexStrings(): string[] {
         return this.vertices.map((vertex) => vertex.toString());
@@ -174,4 +184,30 @@ export default class Graph {
 
         return users;
     }
+
+    addEdge(obj: Obj, name: string, subject: Subject): void {
+        if (!this.vertexInGraph(obj)) {
+            throw new Error(
+                "Edge object does not exist in graph, please create it first."
+            );
+        }
+
+        if (!this.subjectInGraph(subject)) {
+            throw new Error(
+                "Edge subject (UserId or UserSet.object) does not exist in graph, please create it first."
+            );
+        }
+
+        const relation = new Relation(obj, name, subject);
+
+        if (this.edges.some((edge) => edge.isEqual(relation))) {
+            throw new Error("Edge already exists in graph");
+        }
+
+        this.edges.push(relation);
+    }
+
+    // addObject(obj: Obj): boolean {
+    //
+    // }
 }
