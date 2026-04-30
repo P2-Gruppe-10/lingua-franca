@@ -3,6 +3,14 @@ import { Obj, Relation, UserSet } from "./acl.ts";
 
 type Vertex = Obj | UserId;
 
+function verticesAreEqual(a: Vertex, b: Vertex): boolean {
+    if (typeof a === "number") {
+        return a === b;
+    }
+
+    return (a as Obj).isEqual(b as Obj);
+}
+
 /**
  * Graph containing relations and vertices between them.
  */
@@ -13,6 +21,16 @@ export default class Graph {
     constructor(vertices: Vertex[], edges: Relation[]) {
         this.vertices = vertices;
         this.edges = edges;
+    }
+
+    vertexInGraph(vertex: Vertex): boolean {
+        return this.vertices.some((v) => verticesAreEqual(v, vertex));
+    }
+
+    subjectInGraph(subject: Subject): boolean {
+        let vertex: Vertex =
+            typeof subject === "number" ? subject : subject.object;
+        return this.vertexInGraph(vertex);
     }
 
     // Methods for printing contents of a graph
@@ -199,4 +217,30 @@ export default class Graph {
 
         return false;
     }
+
+    addEdge(obj: Obj, name: string, subject: Subject): void {
+        if (!this.vertexInGraph(obj)) {
+            throw new Error(
+                "Edge object does not exist in graph, please create it first."
+            );
+        }
+
+        if (!this.subjectInGraph(subject)) {
+            throw new Error(
+                "Edge subject (UserId or UserSet.object) does not exist in graph, please create it first."
+            );
+        }
+
+        const relation = new Relation(obj, name, subject);
+
+        if (this.edges.some((edge) => edge.isEqual(relation))) {
+            throw new Error("Edge already exists in graph");
+        }
+
+        this.edges.push(relation);
+    }
+
+    // addObject(obj: Obj): boolean {
+    //
+    // }
 }
