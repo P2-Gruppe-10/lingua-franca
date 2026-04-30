@@ -1,4 +1,5 @@
 import express from "express";
+import type { Request } from "express";
 import bodyParser from "body-parser";
 import { Obj, UserSet } from "./acl.ts";
 import { deserializeConfig } from "./serialize.ts";
@@ -10,9 +11,14 @@ const graph = await deserializeConfig();
 
 app.use(bodyParser.json());
 
-app.get("/authorize", (req, res) => {
-    //   "/user/:UserId/relation/:RelationName/objectId/:ObjectId/type/:Type",
+interface AuthorizeBody {
+    ObjectId: string;
+    RelationName: string;
+    Type: string;
+    UserId: string;
+}
 
+app.get("/authorize", (req: Request<unknown, unknown, AuthorizeBody>, res) => {
     console.log(
         req.body.ObjectId,
         req.body.RelationName,
@@ -20,9 +26,9 @@ app.get("/authorize", (req, res) => {
         req.body.UserId
     );
 
-    let object = new Obj(req.body.Type, req.body.ObjectId);
+    const object = new Obj(req.body.Type, req.body.ObjectId);
 
-    let users = graph.resolveSubjects(
+    const users = graph.resolveSubjects(
         new UserSet(object, req.body.RelationName)
     );
 
@@ -38,5 +44,5 @@ app.get("/authorize", (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+    console.log(`Example app listening on port ${port.toString()}`);
 });

@@ -57,7 +57,8 @@ export class Typeconfig implements TypeconfigData {
             path,
             JSON.stringify(
                 this,
-                (_, value) => (value instanceof Set ? [...value] : value), // this is needed because JSON can't stringify Sets
+                (_, value): unknown =>
+                    value instanceof Set ? [...value] : value, // this is needed because JSON can't stringify Sets
                 2
             )
         );
@@ -118,7 +119,7 @@ export class Typeconfig implements TypeconfigData {
         } catch (error) {
             if (error instanceof TypeconfigError) {
                 throw new TypeconfigError(
-                    `Error on line ${lineNumber} ("${line.trim()}")\n  -> ${error.message}`,
+                    `Error on line ${lineNumber.toString()} ("${line.trim()}")\n  -> ${error.message}`,
                     { cause: error }
                 );
             }
@@ -127,6 +128,7 @@ export class Typeconfig implements TypeconfigData {
     }
 
     private static handlePermission(tokens: string[], state: TypeconfigState) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const [_, permissionName, equalsSign, ...logicTokens] = tokens;
         if (!permissionName || equalsSign !== "=" || logicTokens.length === 0) {
             throw new TypeconfigError(
@@ -188,7 +190,7 @@ export class Typeconfig implements TypeconfigData {
         const [command, target, ...extra] = tokens;
         if (!command || !target || extra.length > 0) {
             throw new TypeconfigError(
-                `Relation must have 2 tokens (e.g. "give owner"), got ${tokens.length}`
+                `Relation must have 2 tokens (e.g. "give owner"), got ${tokens.length.toString()}`
             );
         }
         if (command === "give") {
@@ -222,7 +224,7 @@ export class Typeconfig implements TypeconfigData {
 
         if (!keyword || !value) {
             throw new TypeconfigError(
-                `Header must have at least 2 tokens (e.g. "type doc", "relation viewer", "permission can_view = viewer"), got ${tokens.length}.`
+                `Header must have at least 2 tokens (e.g. "type doc", "relation viewer", "permission can_view = viewer"), got ${tokens.length.toString()}.`
             );
         }
 
@@ -230,7 +232,7 @@ export class Typeconfig implements TypeconfigData {
             case "type": {
                 if (extra.length > 0) {
                     throw new TypeconfigError(
-                        `"type" definition should only have 2 tokens, got ${tokens.length}.`
+                        `"type" definition should only have 2 tokens, got ${tokens.length.toString()}.`
                     );
                 }
                 if (typeof state.type === "string") {
@@ -244,7 +246,7 @@ export class Typeconfig implements TypeconfigData {
             case "relation": {
                 if (extra.length > 0) {
                     throw new TypeconfigError(
-                        `"relation" definition should only have 2 tokens, got ${tokens.length}.`
+                        `"relation" definition should only have 2 tokens, got ${tokens.length.toString()}.`
                     );
                 }
                 if (state.validRelations.has(value)) {

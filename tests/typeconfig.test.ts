@@ -1,4 +1,4 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, before } from "node:test";
 import { promises as fs } from "node:fs";
 import assert, { strict } from "node:assert";
 import { Typeconfig } from "../src/typeconfig.ts";
@@ -25,16 +25,6 @@ permission write = editor OR owner
 permission delete = owner
 `;
         await fs.writeFile(validTestFilePath, validConfig);
-    });
-
-    // clean up temporary files after tests run
-    after(async () => {
-        const files = [validTestFilePath, errorTestFilePath, outFilePath];
-        for (const file of files) {
-            try {
-                await fs.unlink(file);
-            } catch {}
-        }
     });
 
     it("should successfully parse a valid config file", async () => {
@@ -67,7 +57,21 @@ permission delete = owner
         await config.saveToFile(outFilePath);
 
         const readJSON = await fs.readFile(outFilePath, "utf-8");
-        const parsedJSON = JSON.parse(readJSON);
+
+        interface JsonParsedTypeconfig {
+            type: string;
+            validRelations: string[];
+            relations: {
+                affected: string;
+                give: string[];
+            }[];
+            permissions: {
+                name: string;
+                grantedBy: string[];
+            }[];
+        }
+
+        const parsedJSON = JSON.parse(readJSON) as JsonParsedTypeconfig;
 
         strict.equal(parsedJSON.type, "doc");
 
@@ -95,7 +99,7 @@ permission read = viewer OR
         await assert.rejects(
             // assert.rejects means we expect the promise to reject, which is the async equivalent of throwing
             async () => await Typeconfig.fromFile(errorTestFilePath),
-            (err: any) => {
+            (err: unknown) => {
                 assert.ok(err instanceof TypeconfigError);
                 assert.match(err.message, /Malformed permission logic/);
                 return true;
@@ -117,7 +121,7 @@ relation viewer
 
         await assert.rejects(
             async () => await Typeconfig.fromFile(errorTestFilePath),
-            (err: any) => {
+            (err: unknown) => {
                 assert.ok(err instanceof TypeconfigError);
                 assert.match(err.message, /is already defined/);
                 return true;
@@ -135,7 +139,7 @@ permission read = viewer
 
         await assert.rejects(
             async () => await Typeconfig.fromFile(errorTestFilePath),
-            (err: any) => {
+            (err: unknown) => {
                 assert.ok(err instanceof TypeconfigError);
                 assert.match(err.message, /No type was ever specified/);
                 return true;
