@@ -23,6 +23,9 @@ export default defineConfig(
             "@typescript-eslint/no-floating-promises": "off",
         },
         files: ["./**/*.test.ts"],
+    },
+    {
+        ignores: ["**/dist/**"],
     }
     // {
     //     extends: [],

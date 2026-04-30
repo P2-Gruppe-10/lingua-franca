@@ -37,5 +37,5 @@
     //"allowImportingTsExtensions": true
   },
   "exclude": ["./dist/**/*"],
-  "include": ["./src/**/*", "./tests/**/*", "./eslint.config.js"]
+  "include": ["./src/**/*", "./tests/**/*"]
 }
