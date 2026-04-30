@@ -25,6 +25,7 @@ app.get("/authorize", (req, res) => {
                 error: "Invalid query parameters",
                 details: z.treeifyError(result.error),
             });
+
         return;
     }
 
