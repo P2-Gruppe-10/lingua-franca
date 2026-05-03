@@ -11,7 +11,6 @@
     // For nodejs:
     "lib": ["esnext"],
     "types": ["node", "express"],
-
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
@@ -34,11 +33,10 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-
     // Custom
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true
   },
-  "exclude": ["./dist/**/*"],
-  "include": ["./src/**/*", "./tests/**/*", "./eslint.config.js"]
+  "exclude": ["./dist/**/*", "./tests/**/*"],
+  "include": ["./src/**/*", "./eslint.config.js"]
 }
