@@ -1,7 +1,6 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
-import { strict } from "node:assert";
 import Graph from "../src/graph.ts";
 import { serializeConfig, deserializeConfig } from "../src/serialize.ts";
 
@@ -21,8 +20,7 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const read = await fs.readFile("./config.json");
 
-        strict.equal(
-            read.toString(),
+        expect(read.toString()).toBe(
             '{"vertices":[],"edges":[{"object":{"type":"EHR","identifier":"mortenEHR"},"name":"viewer","subject":{"object":{"type":"group","identifier":"læge"},"relationName":"member"}}]}'
         );
     });
@@ -57,6 +55,6 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const deserializedGraph = await deserializeConfig();
 
-        strict.deepEqual(deserializedGraph, graph);
+        expect(deserializedGraph).toEqual(graph);
     });
 });
