@@ -10,6 +10,8 @@ import {
     type JsonObject,
 } from "./acl.ts";
 
+export const TOMBSTONE = "..."; // we use this to let a UserSet represent just an object. used by typeconfigs to cross-reference different types
+
 type Vertex = Obj | UserId;
 
 function verticesAreEqual(a: Vertex, b: Vertex): boolean {
@@ -148,6 +150,10 @@ export default class Graph {
 
         // We know the subject is a userset
         const userset = subject;
+
+        if (userset.relationName === TOMBSTONE) {
+            return new Set(); // we skip the tombstones in userset resolution because they don't actually point to any UserIds
+        }
 
         // First, get all relations pointing to the object
         const users = this.getRelationsTo(userset.object)
