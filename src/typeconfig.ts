@@ -6,9 +6,14 @@ export interface Rule {
     give: string;
 }
 
+export interface RewriteRule {
+    relation: string; // must be a valid relation on this type
+    subRelation: string; // relation to check on the referenced object
+}
+
 export interface Permission {
     name: string;
-    grantedBy: Set<string>; // we only implement "sufficient" conditions because a "necessary" AND set of relations is quite a rare circumstance, especially for EHDS
+    grantedBy: Set<string | RewriteRule>; // we only implement "sufficient" conditions because a "necessary" AND set of relations is quite a rare circumstance, especially for EHDS
 }
 
 export interface TypeconfigData {
@@ -132,7 +137,7 @@ export class Typeconfig implements TypeconfigData {
         const [_, permissionName, equalsSign, ...logicTokens] = tokens;
         if (!permissionName || equalsSign !== "=" || logicTokens.length === 0) {
             throw new TypeconfigError(
-                `Permissions must be defined like so: permission [name] = [relation] OR [relation] OR ...`
+                `Permissions must be defined like so: permission [name] = [relation|otherRelation->relation] OR [relation|otherRelation->relation] OR ...`
             );
         }
 
@@ -151,30 +156,31 @@ export class Typeconfig implements TypeconfigData {
             ); // if the length of the logic tokens are equal, it can't possibly be relation names with ORs between em, since that would be an odd amount of entries
         }
 
-        const grantedBy = new Set<string>();
+        const grantedBy = new Set<string | RewriteRule>();
 
-        logicTokens.forEach((token, index) => {
-            if (index % 2 === 0) {
-                // even entry indices should be relations ([relation, or, relation] has relations on index 0 and 2)
-                if (token === "OR") {
+        logicTokens.forEach((token) => {
+            if (token === "OR") return;
+            if (token.includes("->")) {
+                const [relation, subRelation] = token.split("->");
+                if (!relation || !subRelation) {
                     throw new TypeconfigError(
-                        `Unexpected "OR". Expected a relation name.`
+                        `Malformed rewrite rule ${token}.`
                     );
                 }
-                if (!state.validRelations.has(token)) {
+                if (!state.validRelations.has(relation)) {
                     throw new TypeconfigError(
-                        `Relation "${token}" is not defined.`
+                        `Relation "${relation}" is not defined.`
                     );
                 }
-                grantedBy.add(token);
-            } else {
-                // odd entry indices should be OR ([relation, or, relation] has "or" on index 1)
-                if (token !== "OR") {
-                    throw new TypeconfigError(
-                        `Expected "OR" between relations, got "${token}".`
-                    );
-                }
+                grantedBy.add({ relation, subRelation });
+                return;
             }
+            if (!state.validRelations.has(token)) {
+                throw new TypeconfigError(
+                    `Relation "${token}" is not defined.`
+                );
+            }
+            grantedBy.add(token);
         });
 
         state.permissions.add({
