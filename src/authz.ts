@@ -18,6 +18,10 @@ export class AuthZ {
         this.typeconfigs = typeconfig;
     }
 
+    /**
+     * Validates harmony between the graph and typeconfig inside the AuthZ object.
+     * Returns a (possibly empty) list of ValidationErrors.
+     * */
     validate(): ValidationError[] {
         const errors: ValidationError[] = [];
         const typesWithoutConfigs = new Set<string>();
@@ -53,6 +57,23 @@ export class AuthZ {
             .has(user);
     }
 
+    /**
+     * Expands a grant. By this we mean a relation in the context of permission grants; we wish to take a relation and return an array containing that relation plus any other relation that is given this relation by the typeconfig. For example, if owner gives editor, and editor gives viewer, then expandGrant("viewer", whatevertypeconfig) returns ["owner", "editor"].
+     * */
+    private expandGrant(grant: string, typeconfig: Typeconfig): string[] {
+        const expandedGrants = [...typeconfig.relationRules]
+            .filter((rule) => rule.affected === grant)
+            .map((rule) => rule.give);
+        if (expandedGrants.length === 0) {
+            return [];
+        }
+        return expandedGrants.flatMap((g) => this.expandGrant(g, typeconfig));
+    }
+
+    /**
+     * Checks if a UserId has a certain permission on an object of a certain type.
+     * Returns false on missing typeconfigs and invalid permission names; make sure to validate the AuthZ system first.
+     * */
     hasPermission(user: number, object: Obj, permission: string): boolean {
         const typeconfig = this.typeconfigs.get(object.type);
         if (!typeconfig) {
@@ -69,12 +90,18 @@ export class AuthZ {
         for (const grant of grantingRelations) {
             // simple case, just look for a relation
             if (typeof grant === "string") {
-                if (
-                    this.graph
-                        .resolveSubjects(new UserSet(object, grant))
-                        .has(user)
-                ) {
-                    return true;
+                const expandedGrants = this.expandGrant(
+                    grant,
+                    typeconfig
+                ).concat([grant]);
+                for (const g of expandedGrants) {
+                    if (
+                        this.graph
+                            .resolveSubjects(new UserSet(object, g))
+                            .has(user)
+                    ) {
+                        return true;
+                    }
                 }
                 continue; // it's not a rewrite rule but it also didn't give our user the green light, so skip
             }
