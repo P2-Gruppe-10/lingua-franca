@@ -1,0 +1,95 @@
+{
+  "vertices": [],
+  "edges": [
+    {
+      "object": {
+        "type": "EHR",
+        "identifier": "Morten's"
+      },
+      "name": "viewer",
+      "subject": {
+        "object": {
+          "type": "Group",
+          "identifier": "Læge"
+        },
+        "relationName": "member"
+      }
+    },
+    {
+      "object": {
+        "type": "Group",
+        "identifier": "Læge"
+      },
+      "name": "member",
+      "subject": {
+        "object": {
+          "type": "Group",
+          "identifier": "Over Læge"
+        },
+        "relationName": "admin"
+      }
+    },
+    {
+      "object": {
+        "type": "Group",
+        "identifier": "Læge"
+      },
+      "name": "member",
+      "subject": {
+        "object": {
+          "type": "Group",
+          "identifier": "Over Læge"
+        },
+        "relationName": "member"
+      }
+    },
+    {
+      "object": {
+        "type": "Group",
+        "identifier": "Over Læge"
+      },
+      "name": "admin",
+      "subject": 0
+    },
+    {
+      "object": {
+        "type": "Group",
+        "identifier": "Over Læge"
+      },
+      "name": "member",
+      "subject": 1
+    },
+    {
+      "object": {
+        "type": "Group",
+        "identifier": "Læge"
+      },
+      "name": "member",
+      "subject": 2
+    },
+    {
+      "object": {
+        "type": "EHR",
+        "identifier": "Morten's"
+      },
+      "name": "viewer",
+      "subject": 1
+    },
+    {
+      "object": {
+        "type": "EHR",
+        "identifier": "Morten's"
+      },
+      "name": "viewer",
+      "subject": 3
+    },
+    {
+      "object": {
+        "type": "Group",
+        "identifier": "Over Læge"
+      },
+      "name": "ASS!!",
+      "subject": 4
+    }
+  ]
+}

@@ -1,46 +1,54 @@
 import express from "express";
-import type { Request } from "express";
-import bodyParser from "body-parser";
-import { Obj, UserSet } from "./acl.ts";
+import { z } from "zod";
+import { Obj, Relation, UserSet } from "./acl.ts";
 import { deserializeConfig } from "./serialize.ts";
 
 const app = express();
 const port = 3000;
-
 const graph = await deserializeConfig();
+app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
 
-app.use(bodyParser.json());
+const AuthorizeQuerySchema = z.object({
+    ObjectId: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    RelationName: z.string().min(1),
+    Type: z.string().min(1),
+    UserId: z.coerce.number().min(0), // we coerce because the input will be something like "1" and we want 1
+});
 
-interface AuthorizeBody {
-    ObjectId: string;
-    RelationName: string;
-    Type: string;
-    UserId: string;
-}
+app.get("/authorize", (req, res) => {
+    const result = AuthorizeQuerySchema.safeParse(req.query);
 
-app.get("/authorize", (req: Request<unknown, unknown, AuthorizeBody>, res) => {
-    console.log(
-        req.body.ObjectId,
-        req.body.RelationName,
-        req.body.Type,
-        req.body.UserId
-    );
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid query parameters",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
 
-    const object = new Obj(req.body.Type, req.body.ObjectId);
+    // at this point we know that the request fits the schema, so the types are ensured
+    const { Type, ObjectId, RelationName, UserId } = result.data;
 
-    const users = graph.resolveSubjects(
-        new UserSet(object, req.body.RelationName)
-    );
+    const relation = new Relation(
+        new Obj(Type, ObjectId),
+        RelationName,
+        UserId
+    ); // merely constructing this to include its zanzibar-style string form in the response
 
-    console.log(users);
+    const object = new Obj(Type, ObjectId);
+    const users = graph.resolveSubjects(new UserSet(object, RelationName));
 
-    res.statusCode = 200;
-
-    if (users.has(Number(req.body.UserId))) {
-        res.send("The docter has permission to the file");
-    } else res.send("The doctor does not have persmission to the file");
-
-    res.end();
+    if (users.has(UserId)) {
+        res.status(200).send(
+            `Relation <code>${relation.toString()}</code> exists; permission granted`
+        );
+    } else {
+        res.status(403).send(
+            `Relation <code>${relation.toString()}</code> does not exist; permission denied`
+        ); // 401 Unauthorized seems more fitting, but for some reason, it actually means Unauthenticated. Known misnomer. 403 is standard for when the user is actually unauthorized
+    }
 });
 
 app.listen(port, () => {
