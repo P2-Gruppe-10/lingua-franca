@@ -37,6 +37,6 @@
     "rewriteRelativeImportExtensions": true,
     "allowImportingTsExtensions": true
   },
-  "exclude": ["./dist/**/*", "./tests/**/*"],
-  "include": ["./src/**/*", "./eslint.config.js"]
+  "exclude": ["./dist/**/*"],
+  "include": ["./src/**/*", "./tests/**/*", "./eslint.config.js"]
 }
