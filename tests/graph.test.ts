@@ -1,7 +1,6 @@
-import { describe, it } from "node:test";
+import { describe, it, expect } from "vitest";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
 import Graph from "../src/graph.ts";
-import { strict } from "node:assert";
 
 describe("A graph", () => {
     const mortenEhr = new Obj("EHR", "Morten's");
@@ -32,7 +31,7 @@ describe("A graph", () => {
 
         const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
 
-        strict.deepEqual(users, new Set([Bob, Alice, Knud, Gertrud]));
+        expect(users).toEqual(new Set([Bob, Alice, Knud, Gertrud]));
     });
 
     it("should handle loops", () => {
@@ -42,6 +41,6 @@ describe("A graph", () => {
         const graph = new Graph([], with_loop);
 
         const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
-        strict.deepEqual(users, new Set([Bob, Alice, Knud, Gertrud]));
+        expect(users).toEqual(new Set([Bob, Alice, Knud, Gertrud]));
     });
 });

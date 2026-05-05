@@ -27,7 +27,7 @@
   "type": "module",
   "main": "./dist/src/index.js",
   "scripts": {
-    "test": "node --test --test-global-setup=./tests/setup.ts",
+    "test": "vitest run",
     "build": "tsc",
     "serve": "npm run build && node ."
   },
@@ -41,7 +41,8 @@
     "pretty-quick": "^4.2.2",
     "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.1"
+    "typescript-eslint": "^8.59.1",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "body-parser": "^2.2.2",
