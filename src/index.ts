@@ -12,17 +12,19 @@ const AuthorizeQuerySchema = z.object({
     ObjectId: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
     RelationName: z.string().min(1),
     Type: z.string().min(1),
-    UserId: z.coerce.number().min(1), // we coerce because the input will be something like "1" and we want 1
+    UserId: z.coerce.number().min(0), // we coerce because the input will be something like "1" and we want 1
 });
 
 app.get("/authorize", (req, res) => {
     const result = AuthorizeQuerySchema.safeParse(req.query);
 
     if (!result.success) {
-        res.status(400).json({
-            error: "Invalid query parameters",
-            details: z.treeifyError(result.error),
-        });
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid query parameters",
+                details: z.treeifyError(result.error),
+            });
         return;
     }
 
