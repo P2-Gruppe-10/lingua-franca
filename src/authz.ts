@@ -90,11 +90,8 @@ export class AuthZ {
         for (const grant of grantingRelations) {
             // simple case, just look for a relation
             if (typeof grant === "string") {
-                const expandedGrants = this.expandGrant(
-                    grant,
-                    typeconfig
-                ).concat([grant]);
-                for (const g of expandedGrants) {
+                const expandedGrants = this.expandGrant(grant, typeconfig);
+                for (const g of [...expandedGrants, grant]) {
                     if (
                         this.graph
                             .resolveSubjects(new UserSet(object, g))
