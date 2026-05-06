@@ -1,4 +1,4 @@
-import { UserSet, Obj, type UserId, Relation } from "./acl.ts";
+import { UserSet, Obj, type UserId } from "./acl.ts";
 import Graph, { TOMBSTONE } from "./graph.ts";
 import { Typeconfig } from "./typeconfig.ts";
 
@@ -143,7 +143,6 @@ export class AuthZ {
 
             // now that we have a list of objects, we can call hasRelation on those.
             // for example, if the grant is `parent->viewer` and the object is `doc:readme`, we find `doc:readme#parent@folder:home#...`, extract `folder:home`, and then check hasRelation(user, folder:home, "viewer").
-            // it's worth noting that this approach doesn't support a situation where one rewrite rule resolves to a type of object which itself has even more rewrite rules. hopefully this will simply remain out of scope for our project though.
             for (const target of targets) {
                 if (this.hasRelation(user, target, grant.subRelation)) {
                     return true;
