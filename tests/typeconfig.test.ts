@@ -6,7 +6,6 @@ import { TypeconfigError } from "../src/error.ts";
 describe("The Typeconfig class", { timeout: 2000 }, () => {
     const validTestFilePath = "./valid_test.typeconfig";
     const errorTestFilePath = "./error_test.typeconfig";
-    const outFilePath = "./test_out.json";
 
     beforeAll(async () => {
         const validConfig = `
@@ -27,7 +26,7 @@ permission delete = owner
         await fs.writeFile(validTestFilePath, validConfig);
     });
 
-    it("should successfully parse a valid config file", async () => {
+    it("parses a valid config file", async () => {
         const config = await Typeconfig.fromFile(validTestFilePath);
 
         expect(config.type).toBe("doc");
@@ -36,51 +35,61 @@ permission delete = owner
         expect(config.validRelations.has("editor")).toBeTruthy();
         expect(config.validRelations.has("owner")).toBeTruthy();
 
-        const rules = [...config.relationRules];
-        expect(rules.length).toBe(2);
-        expect(rules[0]).toEqual({ affected: "editor", give: "viewer" });
-        expect(rules[1]).toEqual({ affected: "owner", give: "editor" });
+        const editorRewrite = config.usersetRewrites.get("editor");
+        const ownerRewrite = config.usersetRewrites.get("owner");
+
+        expect(editorRewrite).toBeDefined();
+        expect(ownerRewrite).toBeDefined();
+        expect([...editorRewrite!]).toEqual(["viewer"]);
+        expect([...ownerRewrite!]).toEqual(["editor"]);
 
         const perms = [...config.permissions];
         expect(perms.length).toBe(3);
 
         const readPerm = perms.find((p) => p.name === "read");
         expect(readPerm).toBeDefined();
-        if (!readPerm) return; // avoid the "!" operator (readPerm!) because eslint HATES that
+        if (!readPerm) return;
         expect([...readPerm.grantedBy]).toEqual(["viewer", "editor"]);
     });
 
-    it("should serialize the parsed config correctly", async () => {
+    it("parses tuple-to-userset rewrite rules in relations and permissions", async () => {
+        const rewriteConfig = `
+type doc
+
+relation parent
+
+relation viewer
+
+relation editor
+
+relation access
+give parent->viewer
+
+permission can_view = parent->viewer OR viewer
+`;
+        await fs.writeFile(validTestFilePath, rewriteConfig);
+
         const config = await Typeconfig.fromFile(validTestFilePath);
-        await config.saveToFile(outFilePath);
 
-        const readJSON = await fs.readFile(outFilePath, "utf-8");
+        const accessRewrite = config.usersetRewrites.get("access");
+        expect(accessRewrite).toBeDefined();
+        expect([...accessRewrite!]).toEqual([
+            { relation: "parent", subRelation: "viewer" },
+        ]);
 
-        interface JsonParsedTypeconfig {
-            type: string;
-            validRelations: string[];
-            relations: {
-                affected: string;
-                give: string[];
-            }[];
-            permissions: {
-                name: string;
-                grantedBy: string[];
-            }[];
-        }
+        const canView = [...config.permissions].find(
+            (p) => p.name === "can_view"
+        );
+        expect(canView).toBeDefined();
+        if (!canView) return;
 
-        const parsedJSON = JSON.parse(readJSON) as JsonParsedTypeconfig;
-
-        expect(parsedJSON.type).toBe("doc");
-        expect(Array.isArray(parsedJSON.validRelations)).toBeTruthy();
-        expect(parsedJSON.validRelations).toEqual([
+        expect([...canView.grantedBy]).toEqual([
+            { relation: "parent", subRelation: "viewer" },
             "viewer",
-            "editor",
-            "owner",
         ]);
     });
 
-    it("should throw an error for malformed OR logic", async () => {
+    it("throws an error for malformed OR logic", async () => {
         const badLogicConfig = `
 type doc
 
@@ -100,7 +109,7 @@ permission read = viewer OR
         );
     });
 
-    it("should throw an error for duplicate relations", async () => {
+    it("throws an error for duplicate relations", async () => {
         const dupRelationConfig = `
 type doc
 
@@ -120,7 +129,7 @@ relation viewer
         );
     });
 
-    it("should throw an error if no type is defined", async () => {
+    it("throws an error if no type is defined", async () => {
         const noTypeConfig = `
 relation viewer
 

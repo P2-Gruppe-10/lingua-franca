@@ -1,20 +1,26 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { TypeconfigError } from "./error.ts";
 
-export interface Rule {
-    affected: string;
-    give: string;
+export interface RewriteRule {
+    relation: string; // must be a valid relation on this type
+    subRelation: string; // relation to check on the referenced object
 }
+
+// userset terms are either computed usersets or tuple-to-usersets (so a single relation or a relation plus a sub-relation on a different object)
+export type UsersetTerm = string | RewriteRule;
+// userset rewrites are unions of userset terms, so the 1 or more lines under a relation that start with "give"
+export type UsersetRewrite = Set<UsersetTerm>;
+export type UsersetRewriteMap = Map<string, UsersetRewrite>;
 
 export interface Permission {
     name: string;
-    grantedBy: Set<string>; // we only implement "sufficient" conditions because a "necessary" AND set of relations is quite a rare circumstance, especially for EHDS
+    grantedBy: Set<string | RewriteRule>; // we only implement "sufficient" conditions because a "necessary" AND set of relations is quite a rare circumstance, especially for EHDS
 }
 
 export interface TypeconfigData {
     type: string | undefined;
     validRelations: Set<string>;
-    relationRules: Set<Rule>;
+    usersetRewrites: UsersetRewriteMap;
     permissions: Set<Permission>;
 }
 
@@ -36,32 +42,20 @@ function splitFileLines(string: string): string[] {
 export class Typeconfig implements TypeconfigData {
     type: string;
     validRelations: Set<string>;
-    relationRules: Set<Rule>;
+    usersetRewrites: UsersetRewriteMap;
     permissions: Set<Permission>;
 
     // this is mostly just used by the fromFile method
     constructor(
         type: string,
         validRelations: Set<string>,
-        relationRules: Set<Rule>,
+        usersetRewrites: UsersetRewriteMap,
         permissions: Set<Permission>
     ) {
         this.type = type;
         this.validRelations = validRelations;
-        this.relationRules = relationRules;
+        this.usersetRewrites = usersetRewrites;
         this.permissions = permissions;
-    }
-
-    async saveToFile(path: string) {
-        await writeFile(
-            path,
-            JSON.stringify(
-                this,
-                (_, value): unknown =>
-                    value instanceof Set ? [...value] : value, // this is needed because JSON can't stringify Sets
-                2
-            )
-        );
     }
 
     /**
@@ -73,7 +67,7 @@ export class Typeconfig implements TypeconfigData {
         const state: TypeconfigState = {
             type: undefined,
             validRelations: new Set(),
-            relationRules: new Set(),
+            usersetRewrites: new Map(),
             permissions: new Set(),
             inside: undefined,
         };
@@ -92,7 +86,7 @@ export class Typeconfig implements TypeconfigData {
         return new Typeconfig(
             state.type,
             state.validRelations,
-            state.relationRules,
+            state.usersetRewrites,
             state.permissions
         );
     }
@@ -132,7 +126,7 @@ export class Typeconfig implements TypeconfigData {
         const [_, permissionName, equalsSign, ...logicTokens] = tokens;
         if (!permissionName || equalsSign !== "=" || logicTokens.length === 0) {
             throw new TypeconfigError(
-                `Permissions must be defined like so: permission [name] = [relation] OR [relation] OR ...`
+                `Permissions must be defined like so: permission [name] = [relation|otherRelation->relation] OR [relation|otherRelation->relation] OR ...`
             );
         }
 
@@ -151,30 +145,31 @@ export class Typeconfig implements TypeconfigData {
             ); // if the length of the logic tokens are equal, it can't possibly be relation names with ORs between em, since that would be an odd amount of entries
         }
 
-        const grantedBy = new Set<string>();
+        const grantedBy = new Set<string | RewriteRule>();
 
-        logicTokens.forEach((token, index) => {
-            if (index % 2 === 0) {
-                // even entry indices should be relations ([relation, or, relation] has relations on index 0 and 2)
-                if (token === "OR") {
+        logicTokens.forEach((token) => {
+            if (token === "OR") return;
+            if (token.includes("->")) {
+                const [relation, subRelation] = token.split("->");
+                if (!relation || !subRelation) {
                     throw new TypeconfigError(
-                        `Unexpected "OR". Expected a relation name.`
+                        `Malformed rewrite rule ${token}.`
                     );
                 }
-                if (!state.validRelations.has(token)) {
+                if (!state.validRelations.has(relation)) {
                     throw new TypeconfigError(
-                        `Relation "${token}" is not defined.`
+                        `Relation "${relation}" is not defined.`
                     );
                 }
-                grantedBy.add(token);
-            } else {
-                // odd entry indices should be OR ([relation, or, relation] has "or" on index 1)
-                if (token !== "OR") {
-                    throw new TypeconfigError(
-                        `Expected "OR" between relations, got "${token}".`
-                    );
-                }
+                grantedBy.add({ relation, subRelation });
+                return;
             }
+            if (!state.validRelations.has(token)) {
+                throw new TypeconfigError(
+                    `Relation "${token}" is not defined.`
+                );
+            }
+            grantedBy.add(token);
         });
 
         state.permissions.add({
@@ -194,20 +189,43 @@ export class Typeconfig implements TypeconfigData {
             );
         }
         if (command === "give") {
-            if (!state.validRelations.has(target)) {
-                throw new TypeconfigError(`Relation ${target} is not defined.`);
-            }
-
             const affected = state.inside?.[1];
             if (!affected) {
                 // theoretically this error should never ever happen. but makes typescript happy c:
                 throw new TypeconfigError("Missing current relation context.");
             }
 
-            state.relationRules.add({
-                affected: affected,
-                give: target,
-            });
+            let term: UsersetTerm;
+            if (target.includes("->")) {
+                // we have a rewrite rule on our hands so need to splti it up
+                const [relation, subRelation] = target.split("->");
+                if (!relation || !subRelation) {
+                    throw new TypeconfigError(
+                        `Malformed rewrite rule ${target}.`
+                    );
+                }
+                if (!state.validRelations.has(relation)) {
+                    throw new TypeconfigError(
+                        `Relation "${relation}" is not defined.`
+                    );
+                }
+                term = { relation, subRelation };
+            } else {
+                // simple singular target relation
+                if (!state.validRelations.has(target)) {
+                    throw new TypeconfigError(
+                        `Relation ${target} is not defined.`
+                    );
+                }
+                term = target;
+            }
+
+            const existing = state.usersetRewrites.get(affected);
+            if (existing) {
+                existing.add(term);
+            } else {
+                state.usersetRewrites.set(affected, new Set([term]));
+            }
         } else {
             throw new TypeconfigError(
                 `Invalid command "${command}" inside a relation block. Expected "give", or did you forget a blank line?`
