@@ -169,4 +169,34 @@ export default class Graph {
 
         return users;
     }
+
+    DFS(target: UserId, subject: Subject): boolean {
+        const stack: Subject[] = [subject];
+        const visited: Set<Subject> = new Set<Subject>();
+
+        while (stack.length > 0) {
+            //Since the stack is not empty, pop can not return undefined
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const node = stack.pop()!;
+            if (visited.has(node)) {
+                continue;
+            }
+
+            visited.add(node);
+
+            if (node === target) return true;
+
+            //If the type is number and it aint the target, run next node.
+            if (typeof node === "number") continue;
+
+            const subjects = this.getRelationsTo(node.object)
+                // Next, only take the relations which have the correct name
+                .filter((rel) => rel.name === node.relationName)
+                .map((rel) => rel.subject);
+
+            stack.push(...subjects);
+        }
+
+        return false;
+    }
 }

@@ -34,7 +34,44 @@ describe("A graph", () => {
         expect(users).toEqual(new Set([Bob, Alice, Knud, Gertrud]));
     });
 
-    it("should handle loops", () => {
+    it("should find the target (DFS)", () => {
+        const graph = new Graph([], edges);
+        const userset = new UserSet(mortenEhr, "viewer");
+
+        expect(graph.DFS(Bob, userset)).toBeTruthy();
+        expect(graph.DFS(Alice, userset)).toBeTruthy();
+        expect(graph.DFS(Knud, userset)).toBeTruthy();
+        expect(graph.DFS(Gertrud, userset)).toBeTruthy();
+        expect(graph.DFS(Bob, Bob)).toBeTruthy();
+
+        expect(graph.DFS(Martin, userset)).toBeFalsy();
+        expect(graph.DFS(Bob, 37)).toBeFalsy();
+        expect(
+            graph.DFS(Bob, new UserSet(mortenEhr, "silkeborger"))
+        ).toBeFalsy();
+    });
+
+    it("should find the target (DFS) and handle loops", () => {
+        const with_loop = edges.concat([
+            new Relation(overLæge, "member", new UserSet(læge, "member")),
+        ]);
+        const graph = new Graph([], with_loop);
+        const userset = new UserSet(mortenEhr, "viewer");
+
+        expect(graph.DFS(Bob, userset)).toBeTruthy();
+        expect(graph.DFS(Alice, userset)).toBeTruthy();
+        expect(graph.DFS(Knud, userset)).toBeTruthy();
+        expect(graph.DFS(Gertrud, userset)).toBeTruthy();
+        expect(graph.DFS(Bob, Bob)).toBeTruthy();
+
+        expect(graph.DFS(Martin, userset)).toBeFalsy();
+        expect(graph.DFS(0, 37)).toBeFalsy();
+        expect(
+            graph.DFS(Bob, new UserSet(mortenEhr, "silkeborger"))
+        ).toBeFalsy();
+    });
+
+    it("should resolve subject and handle loops", () => {
         const with_loop = edges.concat([
             new Relation(overLæge, "member", new UserSet(læge, "member")),
         ]);
