@@ -1,0 +1,6 @@
+type group
+
+relation parent
+
+relation member
+give parent->member

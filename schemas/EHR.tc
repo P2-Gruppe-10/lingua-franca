@@ -2,22 +2,13 @@ type EHR
 
 relation owner
 
-relation patient
-
-relation carer
-
-relation appender
-give carer
-
 relation editor
+give owner
 
 relation viewer
-give carer
 give editor
-give patient
 
-permission can_redact = owner OR patient
+permission can_redact = owner
 permission can_edit = editor
-permission can_append = editor OR carer OR appender
-
-permission can_view = patient OR carer OR viewer OR editor
+permission can_append = editor
+permission can_view = viewer
