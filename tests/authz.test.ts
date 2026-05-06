@@ -16,7 +16,7 @@ function makeDocTypeconfig() {
     return new Typeconfig(
         docType,
         new Set(["viewer", "owner"]),
-        new Set(),
+        new Map(),
         new Set([{ name: "can_view", grantedBy: new Set(["viewer"]) }])
     );
 }
@@ -25,14 +25,14 @@ function makeFolderTypeconfig() {
     return new Typeconfig(
         folderType,
         new Set(["viewer"]),
-        new Set(),
+        new Map(),
         new Set()
     );
 }
 
 describe("AuthZ", () => {
     describe("validate()", () => {
-        it("should return no errors for a valid graph and typeconfigs", () => {
+        it("returns no errors for a valid graph and typeconfigs", () => {
             const graph = new Graph(
                 [],
                 [new Relation(docObj, "viewer", userId)]
@@ -45,7 +45,7 @@ describe("AuthZ", () => {
             expect(authz.validate()).toEqual([]);
         });
 
-        it("should report missing typeconfig for a type that appears in the graph", () => {
+        it("reports missing typeconfig for a type that appears in the graph", () => {
             const graph = new Graph(
                 [],
                 [new Relation(docObj, "viewer", userId)]
@@ -60,7 +60,7 @@ describe("AuthZ", () => {
             });
         });
 
-        it("should report invalid relation for a relation not in the typeconfig", () => {
+        it("reports invalid relation for a relation not in the typeconfig", () => {
             const graph = new Graph(
                 [],
                 [new Relation(docObj, "nincompoop", userId)]
@@ -79,7 +79,7 @@ describe("AuthZ", () => {
             });
         });
 
-        it("should only report missing_typeconfig once per type even if that type has many edges", () => {
+        it("only reports missing_typeconfig once per type even if that type has many edges", () => {
             const graph = new Graph(
                 [],
                 [
@@ -93,7 +93,7 @@ describe("AuthZ", () => {
     });
 
     describe("hasPermission()", () => {
-        it("should return true when user has a directly granting relation", () => {
+        it("returns true when user has a directly granting relation", () => {
             const graph = new Graph(
                 [],
                 [new Relation(docObj, "viewer", userId)]
@@ -106,7 +106,7 @@ describe("AuthZ", () => {
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
         });
 
-        it("should return false when user does not have a granting relation", () => {
+        it("returns false when user does not have a granting relation", () => {
             const graph = new Graph([], []);
             const authz = new AuthZ(
                 graph,
@@ -116,7 +116,7 @@ describe("AuthZ", () => {
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(false);
         });
 
-        it("should return false for an unknown permission name", () => {
+        it("returns false for an unknown permission name", () => {
             const graph = new Graph(
                 [],
                 [new Relation(docObj, "viewer", userId)]
@@ -126,23 +126,21 @@ describe("AuthZ", () => {
                 new Map([[docType, makeDocTypeconfig()]])
             );
 
-            expect(
-                authz.hasPermission(userId, docObj, "can_do_undefined_shit")
-            ).toBe(false);
+            expect(authz.hasPermission(userId, docObj, "can_fly")).toBe(false);
         });
 
-        it("should return false when there is no typeconfig for the object's type", () => {
+        it("returns false when there is no typeconfig for the object's type", () => {
             const graph = new Graph([], []);
             const authz = new AuthZ(graph, new Map());
 
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(false);
         });
 
-        it("should return true via a rewrite rule when user is viewer of the parent folder", () => {
+        it("returns true via a permission rewrite rule when user is viewer of the parent folder", () => {
             const docWithParentTypeconfig = new Typeconfig(
                 docType,
                 new Set(["viewer", "parent"]),
-                new Set(),
+                new Map(),
                 new Set([
                     {
                         name: "can_view",
@@ -157,13 +155,11 @@ describe("AuthZ", () => {
             const graph = new Graph(
                 [],
                 [
-                    // doc:readme#parent@folder:home#... which the tombstone userset linking the doc to its parent folder
                     new Relation(
                         docObj,
                         "parent",
                         new UserSet(folderObj, TOMBSTONE)
                     ),
-                    // folder:home#viewer@1 meaning the user is a viewer of the folder
                     new Relation(folderObj, "viewer", userId),
                 ]
             );
@@ -179,13 +175,13 @@ describe("AuthZ", () => {
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
         });
 
-        it("should return false via rewrite rule when user is viewer of a different folder", () => {
+        it("returns false via permission rewrite rule when user is viewer of a different folder", () => {
             const otherFolderObj = new Obj(folderType, "other");
 
             const docWithParentTypeconfig = new Typeconfig(
                 docType,
                 new Set(["viewer", "parent"]),
-                new Set(),
+                new Map(),
                 new Set([
                     {
                         name: "can_view",
@@ -205,7 +201,6 @@ describe("AuthZ", () => {
                         "parent",
                         new UserSet(folderObj, TOMBSTONE)
                     ),
-                    // user is viewer of a totally unrelated folder which does NOT contain doc:readme
                     new Relation(otherFolderObj, "viewer", userId),
                 ]
             );
@@ -219,6 +214,109 @@ describe("AuthZ", () => {
             );
 
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(false);
+        });
+
+        it("returns true via computed userset in userset rewrites", () => {
+            const docWithComputedUserset = new Typeconfig(
+                docType,
+                new Set(["owner", "editor", "viewer"]),
+                new Map([
+                    ["viewer", new Set(["editor"])],
+                    ["editor", new Set(["owner"])],
+                ]),
+                new Set([
+                    {
+                        name: "can_view",
+                        grantedBy: new Set(["viewer"]),
+                    },
+                ])
+            );
+
+            const graph = new Graph(
+                [],
+                [new Relation(docObj, "owner", userId)]
+            );
+
+            const authz = new AuthZ(
+                graph,
+                new Map([[docType, docWithComputedUserset]])
+            );
+
+            expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
+        });
+
+        it("returns true via tuple-to-userset in usersetRewrites", () => {
+            const docWithRelationRewrite = new Typeconfig(
+                docType,
+                new Set(["viewer", "parent"]),
+                new Map([
+                    [
+                        "viewer",
+                        new Set([
+                            { relation: "parent", subRelation: "viewer" },
+                        ]),
+                    ],
+                ]),
+                new Set([
+                    {
+                        name: "can_view",
+                        grantedBy: new Set(["viewer"]),
+                    },
+                ])
+            );
+
+            const graph = new Graph(
+                [],
+                [
+                    new Relation(
+                        docObj,
+                        "parent",
+                        new UserSet(folderObj, TOMBSTONE)
+                    ),
+                    new Relation(folderObj, "viewer", userId),
+                ]
+            );
+
+            const authz = new AuthZ(
+                graph,
+                new Map([
+                    [docType, docWithRelationRewrite],
+                    [folderType, makeFolderTypeconfig()],
+                ])
+            );
+
+            expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
+        });
+
+        it.fails("cant handle cyclic userset rewrites yet", () => {
+            const cyclicTypeconfig = new Typeconfig(
+                docType,
+                new Set(["viewer", "editor"]),
+                new Map([
+                    ["viewer", new Set(["editor"])],
+                    ["editor", new Set(["viewer"])],
+                ]),
+                new Set([
+                    {
+                        name: "can_view",
+                        grantedBy: new Set(["viewer"]),
+                    },
+                ])
+            );
+
+            const graph = new Graph(
+                [],
+                [new Relation(docObj, "editor", userId)]
+            );
+
+            const authz = new AuthZ(
+                graph,
+                new Map([[docType, cyclicTypeconfig]])
+            );
+
+            // this will recurse forever until stack overflow
+            // editors are viewers and viewers are editors and editors are viewers and viewers are...................
+            authz.hasPermission(userId, docObj, "can_view");
         });
     });
 });

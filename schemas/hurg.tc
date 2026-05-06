@@ -1,0 +1,11 @@
+type hurg
+
+relation zoog
+
+relation plink
+give zoog
+
+relation shingle
+give zoog->shingle
+
+permission ximploob = shingle OR zoog
