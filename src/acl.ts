@@ -61,3 +61,38 @@ export class Relation {
         return `${this.object.toString()}#${this.name}@${this.subject.toString()}`;
     }
 }
+
+export type JsonObject = Record<string, unknown>;
+
+export function isObject(value: unknown): value is JsonObject {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function isObjShape(o: JsonObject): o is {
+    type: unknown;
+    identifier: unknown;
+} {
+    return "type" in o && "identifier" in o;
+}
+
+export function isUserSetShape(o: JsonObject): o is {
+    object: unknown;
+    relationName: unknown;
+} {
+    return "object" in o && "relationName" in o;
+}
+
+export function isRelationShape(o: JsonObject): o is {
+    object: unknown;
+    name: unknown;
+    subject: unknown;
+} {
+    return "object" in o && "name" in o && "subject" in o;
+}
+
+export function isGraphShape(o: JsonObject): o is {
+    vertices: unknown;
+    edges: unknown;
+} {
+    return "vertices" in o && "edges" in o;
+}
