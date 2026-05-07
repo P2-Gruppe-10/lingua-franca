@@ -15,6 +15,24 @@ const AuthorizeQuerySchema = z.object({
     userId: z.coerce.number().min(0), // we coerce because the input will be something like "1" and we want 1
 });
 
+const ObjectSchema = z.object({
+    type: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    identifier: z.string().min(1),
+});
+
+const UserSetSchema = z.object({
+    object: ObjectSchema,
+    relationName: z.string().min(1),
+});
+
+const SubjectSchema = z.union([UserSetSchema, z.number()]);
+
+const RelationsQuerySchema = z.object({
+    object: ObjectSchema, // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    name: z.string().min(1),
+    subject: SubjectSchema,
+});
+
 app.get("/authorize", (req, res) => {
     const result = AuthorizeQuerySchema.safeParse(req.query);
 
@@ -49,24 +67,6 @@ app.get("/authorize", (req, res) => {
             `Relation <code>${relation.toString()}</code> does not exist; permission denied`
         ); // 401 Unauthorized seems more fitting, but for some reason, it actually means Unauthenticated. Known misnomer. 403 is standard for when the user is actually unauthorized
     }
-});
-
-const ObjectSchema = z.object({
-    type: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
-    identifier: z.string().min(1),
-});
-
-const UserSetSchema = z.object({
-    object: ObjectSchema,
-    relationName: z.string().min(1),
-});
-
-const SubjectSchema = z.union([UserSetSchema, z.number()]);
-
-const RelationsQuerySchema = z.object({
-    object: ObjectSchema, // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
-    name: z.string().min(1),
-    subject: SubjectSchema,
 });
 
 app.post("/relations", (req, res) => {
