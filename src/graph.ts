@@ -240,6 +240,18 @@ export default class Graph {
         this.edges.push(relation);
     }
 
+    deleteEdge(obj: Obj, name: string, subject: Subject): boolean {
+        const relation = new Relation(obj, name, subject);
+
+        const index = this.edges.findIndex((edge) => edge.isEqual(relation));
+
+        if (index === -1) return false;
+
+        this.edges.splice(index, 1);
+
+        return true;
+    }
+
     // addObject(obj: Obj): boolean {
     //
     // }

@@ -119,9 +119,46 @@ app.post("/relations", (req, res) => {
 });
 
 // Remove relation from graph
-// app.delete("/relations", (req, res) => {
-//
-// })
+app.delete("/relations", (req, res) => {
+    const result = RelationsQuerySchema.safeParse(req.query);
+
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid delete query",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
+
+    const { object, name } = result.data;
+
+    const obj = new Obj(object.type, object.identifier);
+
+    let subject: Subject;
+    // subject is UserId
+    if (typeof result.data.subject === "number") {
+        subject = result.data.subject;
+    } else {
+        const bodyObj = result.data.subject.object;
+        const object = new Obj(bodyObj.type, bodyObj.identifier);
+
+        subject = new UserSet(object, result.data.subject.relationName);
+    }
+
+    if (!graph.deleteEdge(obj, name, subject)) {
+        res.status(409)
+            .json({
+                error: "Could not delete edge; does not exist",
+            })
+            .end();
+
+        return;
+    }
+
+    res.status(200).end();
+});
 
 // Modify existing relation
 // app.put("/relations", (req, res) => {
