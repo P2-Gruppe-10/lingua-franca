@@ -323,4 +323,16 @@ export default class Graph {
 
         return true;
     }
+
+    deleteSubject(subject: UserId): boolean {
+        const index = this.vertices.findIndex((vertex) =>
+            verticesAreEqual(vertex, subject)
+        );
+
+        if (index === -1) return false;
+
+        this.vertices.splice(index, 1);
+
+        return true;
+    }
 }

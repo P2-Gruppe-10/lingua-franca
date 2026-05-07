@@ -250,6 +250,7 @@ app.put("/objects", (req, res) => {
     res.status(200).end();
 });
 
+//Add subject to graph
 app.post("/subjects", (req, res) => {
     const result = SubjectSchema.safeParse(req.body);
 
@@ -282,7 +283,38 @@ app.post("/subjects", (req, res) => {
     res.status(200).end();
 });
 
-//app.delete("/subjects", (req, res) => {});
+//Delete subject from graph
+app.delete("/subjects", (req, res) => {
+    const result = SubjectSchema.safeParse(req.body);
+
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid post body",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
+
+    if (typeof result.data !== "number") {
+        res.status(409).json({
+            error: "Subject must be a number",
+        });
+        return;
+    }
+
+    const subject: UserId = result.data;
+
+    if (!graph.deleteSubject(subject)) {
+        res.status(409).json({
+            error: "Subject does not exist",
+        });
+        return;
+    }
+
+    res.status(200).end();
+});
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port.toString()}`);
