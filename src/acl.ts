@@ -68,31 +68,50 @@ export function isObject(value: unknown): value is JsonObject {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Tests wether an object is _shaped_ like an `Obj`.
+ */
 export function isObjShape(o: JsonObject): o is {
-    type: unknown;
-    identifier: unknown;
+    type: Type;
+    identifier: ObjectId;
 } {
-    return "type" in o && "identifier" in o;
+    return (
+        "type" in o &&
+        typeof o.type === "string" &&
+        "identifier" in o &&
+        typeof o.identifier === "string"
+    );
 }
 
+/**
+ * Tests wether an object is _shaped_ like a `UserSet`.
+ */
 export function isUserSetShape(o: JsonObject): o is {
-    object: unknown;
-    relationName: unknown;
+    object: Obj;
+    relationName: RelationName;
 } {
-    return "object" in o && "relationName" in o;
+    return (
+        "object" in o &&
+        o.object instanceof Obj &&
+        "relationName" in o &&
+        typeof o.relationName === "string"
+    );
 }
 
+/**
+ * Tests wether an object is _shaped_ like a `Relation`.
+ */
 export function isRelationShape(o: JsonObject): o is {
-    object: unknown;
-    name: unknown;
-    subject: unknown;
+    object: Obj;
+    name: RelationName;
+    subject: Subject;
 } {
-    return "object" in o && "name" in o && "subject" in o;
-}
-
-export function isGraphShape(o: JsonObject): o is {
-    vertices: unknown;
-    edges: unknown;
-} {
-    return "vertices" in o && "edges" in o;
+    return (
+        "object" in o &&
+        o.object instanceof Obj &&
+        "name" in o &&
+        typeof o.name === "string" &&
+        "subject" in o &&
+        (typeof o.subject === "number" || o.subject instanceof UserSet)
+    );
 }
