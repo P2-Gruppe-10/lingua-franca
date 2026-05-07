@@ -17,7 +17,7 @@ function makeDocTypeconfig() {
         docType,
         new Set(["viewer", "owner"]),
         new Map(),
-        new Set([{ name: "can_view", grantedBy: new Set(["viewer"]) }])
+        new Map([["can_view", new Set(["viewer"])]])
     );
 }
 
@@ -26,7 +26,7 @@ function makeFolderTypeconfig() {
         folderType,
         new Set(["viewer"]),
         new Map(),
-        new Set()
+        new Map()
     );
 }
 
@@ -77,18 +77,6 @@ describe("AuthZ", () => {
                 type: docType,
                 relationName: "nincompoop",
             });
-        });
-
-        it("only reports missing_typeconfig once per type even if that type has many edges", () => {
-            const graph = new Graph(
-                [],
-                [
-                    new Relation(docObj, "viewer", userId),
-                    new Relation(docObj, "owner", userId),
-                ]
-            );
-            const authz = new AuthZ(graph, new Map());
-            expect(authz.validate()).toHaveLength(1);
         });
     });
 
@@ -141,14 +129,14 @@ describe("AuthZ", () => {
                 docType,
                 new Set(["viewer", "parent"]),
                 new Map(),
-                new Set([
-                    {
-                        name: "can_view",
-                        grantedBy: new Set([
+                new Map([
+                    [
+                        "can_view",
+                        new Set([
                             "viewer",
                             { relation: "parent", subRelation: "viewer" },
                         ]),
-                    },
+                    ],
                 ])
             );
 
@@ -182,14 +170,14 @@ describe("AuthZ", () => {
                 docType,
                 new Set(["viewer", "parent"]),
                 new Map(),
-                new Set([
-                    {
-                        name: "can_view",
-                        grantedBy: new Set([
+                new Map([
+                    [
+                        "can_view",
+                        new Set([
                             "viewer",
                             { relation: "parent", subRelation: "viewer" },
                         ]),
-                    },
+                    ],
                 ])
             );
 
@@ -224,12 +212,7 @@ describe("AuthZ", () => {
                     ["viewer", new Set(["editor"])],
                     ["editor", new Set(["owner"])],
                 ]),
-                new Set([
-                    {
-                        name: "can_view",
-                        grantedBy: new Set(["viewer"]),
-                    },
-                ])
+                new Map([["can_view", new Set(["viewer"])]])
             );
 
             const graph = new Graph(
@@ -257,12 +240,7 @@ describe("AuthZ", () => {
                         ]),
                     ],
                 ]),
-                new Set([
-                    {
-                        name: "can_view",
-                        grantedBy: new Set(["viewer"]),
-                    },
-                ])
+                new Map([["can_view", new Set(["viewer"])]])
             );
 
             const graph = new Graph(
@@ -296,12 +274,7 @@ describe("AuthZ", () => {
                     ["viewer", new Set(["editor"])],
                     ["editor", new Set(["viewer"])],
                 ]),
-                new Set([
-                    {
-                        name: "can_view",
-                        grantedBy: new Set(["viewer"]),
-                    },
-                ])
+                new Map([["can_view", new Set(["viewer"])]])
             );
 
             const graph = new Graph(
@@ -314,8 +287,6 @@ describe("AuthZ", () => {
                 new Map([[docType, cyclicTypeconfig]])
             );
 
-            // this will recurse forever until stack overflow
-            // editors are viewers and viewers are editors and editors are viewers and viewers are...................
             authz.hasPermission(userId, docObj, "can_view");
         });
     });

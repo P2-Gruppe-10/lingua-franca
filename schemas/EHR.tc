@@ -1,12 +1,11 @@
 type EHR
 
 relation owner
-
 relation editor
-give owner
-
 relation viewer
-give editor
+
+give editor if owner
+give viewer if editor
 
 permission can_redact = owner
 permission can_edit = editor

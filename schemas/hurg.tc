@@ -1,11 +1,10 @@
 type hurg
 
 relation zoog
-
 relation plink
-give zoog
-
 relation shingle
-give zoog->shingle
 
-permission ximploob = shingle OR zoog
+give plink if zoog
+give shingle if zoog has shingle
+
+permission ximploob = shingle + zoog

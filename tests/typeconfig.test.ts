@@ -12,15 +12,14 @@ describe("The Typeconfig class", { timeout: 2000 }, () => {
 type doc
 
 relation viewer
-
 relation editor
-give viewer
-
 relation owner
-give editor
 
-permission read = viewer OR editor
-permission write = editor OR owner
+give viewer if editor
+give editor if owner
+
+permission read = viewer + editor
+permission write = editor + owner
 permission delete = owner
 `;
         await fs.writeFile(validTestFilePath, validConfig);
@@ -36,20 +35,20 @@ permission delete = owner
         expect(config.validRelations.has("owner")).toBeTruthy();
 
         const editorRewrite = config.usersetRewrites.get("editor");
-        const ownerRewrite = config.usersetRewrites.get("owner");
+        const viewerRewrite = config.usersetRewrites.get("viewer");
 
         expect(editorRewrite).toBeDefined();
-        expect(ownerRewrite).toBeDefined();
-        expect([...editorRewrite!]).toEqual(["viewer"]);
-        expect([...ownerRewrite!]).toEqual(["editor"]);
+        expect(viewerRewrite).toBeDefined();
+        expect([...editorRewrite!]).toEqual(["owner"]);
+        expect([...viewerRewrite!]).toEqual(["editor"]);
 
-        const perms = [...config.permissions];
-        expect(perms.length).toBe(3);
+        const perms = config.permissions;
+        expect(perms.size).toBe(3);
 
-        const readPerm = perms.find((p) => p.name === "read");
+        const readPerm = perms.get("read");
         expect(readPerm).toBeDefined();
         if (!readPerm) return;
-        expect([...readPerm.grantedBy]).toEqual(["viewer", "editor"]);
+        expect([...readPerm]).toEqual(["viewer", "editor"]);
     });
 
     it("parses tuple-to-userset rewrite rules in relations and permissions", async () => {
@@ -57,15 +56,13 @@ permission delete = owner
 type doc
 
 relation parent
-
 relation viewer
-
 relation editor
-
 relation access
-give parent->viewer
 
-permission can_view = parent->viewer OR viewer
+give access if parent has viewer
+
+permission can_view = parent:viewer + viewer
 `;
         await fs.writeFile(validTestFilePath, rewriteConfig);
 
@@ -77,27 +74,24 @@ permission can_view = parent->viewer OR viewer
             { relation: "parent", subRelation: "viewer" },
         ]);
 
-        const canView = [...config.permissions].find(
-            (p) => p.name === "can_view"
-        );
+        const canView = config.permissions.get("can_view");
         expect(canView).toBeDefined();
         if (!canView) return;
 
-        expect([...canView.grantedBy]).toEqual([
+        expect([...canView]).toEqual([
             { relation: "parent", subRelation: "viewer" },
             "viewer",
         ]);
     });
 
-    it("throws an error for malformed OR logic", async () => {
+    it("throws an error for malformed permission logic", async () => {
         const badLogicConfig = `
 type doc
 
 relation viewer
-
 relation editor
 
-permission read = viewer OR
+permission read = viewer +
 `;
         await fs.writeFile(errorTestFilePath, badLogicConfig);
 
@@ -114,9 +108,7 @@ permission read = viewer OR
 type doc
 
 relation viewer
-
 relation editor
-
 relation viewer
 `;
         await fs.writeFile(errorTestFilePath, dupRelationConfig);

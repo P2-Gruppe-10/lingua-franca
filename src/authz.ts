@@ -124,9 +124,7 @@ export class AuthZ {
         const typeconfig = this.typeconfigs.get(object.type);
         if (!typeconfig) return false;
 
-        const grantingRelations = [...typeconfig.permissions].find(
-            (perm) => perm.name === permission
-        )?.grantedBy;
+        const grantingRelations = typeconfig.permissions.get(permission);
         if (!grantingRelations) return false;
 
         for (const grant of grantingRelations) {
@@ -173,6 +171,7 @@ export class AuthZ {
 //         new Relation(hurgAlpha, "zoog", new UserSet(hurgBeta, TOMBSTONE)),
 //         new Relation(hurgBeta, "shingle", 0),
 //         new Relation(hurgAlpha, "zoog", 1),
+//         new Relation(chief, "admin", 3),
 //     ]
 // );
 // const ehrtc = await Typeconfig.fromFile("./schemas/EHR.tc");
@@ -198,4 +197,6 @@ export class AuthZ {
 //     console.log(authz.hasPermission(0, hurgAlpha, "ximploob"));
 //     console.log(authz.hasPermission(1, hurgAlpha, "ximploob"));
 //     console.log(authz.hasPermission(2, hurgAlpha, "ximploob"));
+//     console.log(authz.hasPermission(3, doctor, "can_fire"));
+//     console.log(authz.hasPermission(3, doctor, "can_edit"));
 // }
