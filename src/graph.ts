@@ -8,7 +8,7 @@ function verticesAreEqual(a: Vertex, b: Vertex): boolean {
         return a === b;
     }
 
-    return (a as Obj).isEqual(b as Obj);
+    return a.isEqual(b as Obj);
 }
 
 /**
@@ -28,7 +28,7 @@ export default class Graph {
     }
 
     subjectInGraph(subject: Subject): boolean {
-        let vertex: Vertex =
+        const vertex: Vertex =
             typeof subject === "number" ? subject : subject.object;
         return this.vertexInGraph(vertex);
     }
