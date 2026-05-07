@@ -20,6 +20,13 @@ const ObjectSchema = z.object({
     identifier: z.string().min(1),
 });
 
+const ModifyObjectSchema = z.object({
+    typeOriginal: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    identifierOriginal: z.string().min(1),
+    typeModified: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    identifierModified: z.string().min(1),
+});
+
 const UserSetSchema = z.object({
     object: ObjectSchema,
     relationName: z.string().min(1),
@@ -209,9 +216,37 @@ app.delete("/objects", (req, res) => {
 });
 
 // Modify existing object
-// app.put("/objects", (req, res) => {
-//
-// })
+app.put("/objects", (req, res) => {
+    const result = ModifyObjectSchema.safeParse(req.body);
+
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid post body",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
+
+    const orginalObject = new Obj(
+        result.data.typeOriginal,
+        result.data.identifierOriginal
+    );
+    const modifiedObject = new Obj(
+        result.data.typeModified,
+        result.data.identifierModified
+    );
+
+    if (!graph.modifyObject(orginalObject, modifiedObject)) {
+        res.status(409).json({
+            error: "Could not find the object to modify",
+        });
+        return;
+    }
+
+    res.status(200).end();
+});
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port.toString()}`);

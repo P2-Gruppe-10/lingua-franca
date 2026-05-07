@@ -273,4 +273,21 @@ export default class Graph {
 
         return true;
     }
+
+    modifyObject(orginalObject: Obj, modifiedObject: Obj): boolean {
+        const vertex = this.vertices.find((vertex) =>
+            verticesAreEqual(vertex, orginalObject)
+        );
+
+        if (!vertex) return false;
+
+        if (vertex instanceof Obj) {
+            vertex.identifier = modifiedObject.identifier;
+            vertex.type = modifiedObject.type;
+
+            return true;
+        }
+
+        return false;
+    }
 }
