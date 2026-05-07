@@ -49,6 +49,17 @@ export default class Graph {
         return [];
     }
 
+    getRelationsFrom(vertex: Vertex): Relation[] {
+        if (vertex instanceof Obj) {
+            return this.edges.filter(
+                (edge) =>
+                    edge.subject instanceof UserSet &&
+                    vertex.isEqual(edge.subject.object)
+            );
+        }
+        return [];
+    }
+
     /**
      * Converts Graph to JSON compatible string
      */
@@ -240,9 +251,7 @@ export default class Graph {
         this.edges.push(relation);
     }
 
-    deleteEdge(obj: Obj, name: string, subject: Subject): boolean {
-        const relation = new Relation(obj, name, subject);
-
+    deleteEdge(relation: Relation): boolean {
         const index = this.edges.findIndex((edge) => edge.isEqual(relation));
 
         if (index === -1) return false;
@@ -263,12 +272,26 @@ export default class Graph {
     }
 
     deleteObject(obj: Obj): boolean {
+        //Find the index of the object in verticies to make sure it exists
         const index = this.vertices.findIndex((vertex) =>
             verticesAreEqual(vertex, obj)
         );
 
+        //If it does not exists return false
         if (index === -1) return false;
 
+        //Find all the edges point to and from the object
+        const connectedEdges = [
+            ...this.getRelationsTo(obj),
+            ...this.getRelationsFrom(obj),
+        ];
+
+        //Delete all the edges pointing to and from the object
+        for (const edge of connectedEdges) {
+            this.deleteEdge(edge);
+        }
+
+        //Delete the object
         this.vertices.splice(index, 1);
 
         return true;

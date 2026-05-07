@@ -152,7 +152,9 @@ app.delete("/relations", (req, res) => {
         subject = new UserSet(object, result.data.subject.relationName);
     }
 
-    if (!graph.deleteEdge(obj, name, subject)) {
+    const relation = new Relation(obj, name, subject);
+
+    if (!graph.deleteEdge(relation)) {
         res.status(409).json({
             error: "Could not delete edge; does not exist",
         });
