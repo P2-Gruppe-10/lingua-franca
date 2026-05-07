@@ -252,7 +252,13 @@ export default class Graph {
         return true;
     }
 
-    // addObject(obj: Obj): boolean {
-    //
-    // }
+    addObject(obj: Obj): boolean {
+        if (this.vertexInGraph(obj)) {
+            return false;
+        }
+
+        this.vertices.push(obj);
+
+        return true;
+    }
 }

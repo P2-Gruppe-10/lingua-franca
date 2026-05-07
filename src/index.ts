@@ -102,15 +102,13 @@ app.post("/relations", (req, res) => {
     } catch (err) {
         if (!(err instanceof Error)) {
             console.error("Error is unknown type: ", err);
-            res.status(500).send({ error: "Whoopsies" }).end();
+            res.status(500).send({ error: "Whoopsies" });
             return;
         }
 
-        res.status(409)
-            .send({
-                error: `[${err.name}]: ${err.message}`,
-            })
-            .end();
+        res.status(409).send({
+            error: `[${err.name}]: ${err.message}`,
+        });
 
         return;
     }
@@ -148,11 +146,9 @@ app.delete("/relations", (req, res) => {
     }
 
     if (!graph.deleteEdge(obj, name, subject)) {
-        res.status(409)
-            .json({
-                error: "Could not delete edge; does not exist",
-            })
-            .end();
+        res.status(409).json({
+            error: "Could not delete edge; does not exist",
+        });
 
         return;
     }
@@ -160,18 +156,34 @@ app.delete("/relations", (req, res) => {
     res.status(200).end();
 });
 
-// Modify existing relation
-// app.put("/relations", (req, res) => {
-//
-// })
-
 // Add new object to graph
-// app.post("/objects", (req, res) => {
-//
-// })
+app.post("/objects", (req, res) => {
+    const result = ObjectSchema.safeParse(req.body);
+
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid post body",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
+
+    const object = new Obj(result.data.type, result.data.identifier);
+
+    if (!graph.addObject(object)) {
+        res.status(409).json({
+            error: "Object already exists",
+        });
+        return;
+    }
+
+    res.status(200).end();
+});
 
 // Remove object from graph
-// app.delete("/objects", (req, res) => {
+//app.delete("/objects", (req, res) => {
 //
 // })
 
