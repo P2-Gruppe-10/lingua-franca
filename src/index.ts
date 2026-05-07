@@ -1,6 +1,6 @@
 import express from "express";
 import { z } from "zod";
-import { Obj, Relation, UserSet, type Subject } from "./acl.ts";
+import { Obj, Relation, UserSet, type Subject, type UserId } from "./acl.ts";
 import { deserializeConfig } from "./serialize.ts";
 
 const app = express();
@@ -249,6 +249,40 @@ app.put("/objects", (req, res) => {
 
     res.status(200).end();
 });
+
+app.post("/subjects", (req, res) => {
+    const result = SubjectSchema.safeParse(req.body);
+
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid post body",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
+
+    if (typeof result.data !== "number") {
+        res.status(409).json({
+            error: "Subject must be a number",
+        });
+        return;
+    }
+
+    const subject: UserId = result.data;
+
+    if (!graph.addSubject(subject)) {
+        res.status(409).json({
+            error: "Subject already exists",
+        });
+        return;
+    }
+
+    res.status(200).end();
+});
+
+//app.delete("/subjects", (req, res) => {});
 
 app.listen(port, () => {
     console.log(`Example app listening on port ${port.toString()}`);

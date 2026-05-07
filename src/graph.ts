@@ -313,4 +313,14 @@ export default class Graph {
 
         return false;
     }
+
+    addSubject(subject: UserId): boolean {
+        if (this.vertexInGraph(subject)) {
+            return false;
+        }
+
+        this.vertices.push(subject);
+
+        return true;
+    }
 }
