@@ -55,7 +55,7 @@ export function subjectsAreEqual(a: Subject, b: Subject): boolean {
         return a === b;
     }
 
-    return (a as UserSet).isEqual(b as UserSet);
+    return a.isEqual(b as UserSet);
 }
 
 /**
