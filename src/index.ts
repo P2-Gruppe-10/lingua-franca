@@ -183,9 +183,30 @@ app.post("/objects", (req, res) => {
 });
 
 // Remove object from graph
-//app.delete("/objects", (req, res) => {
-//
-// })
+app.delete("/objects", (req, res) => {
+    const result = ObjectSchema.safeParse(req.body);
+
+    if (!result.success) {
+        res.status(400)
+            .contentType("application/json")
+            .json({
+                error: "Invalid post body",
+                details: z.treeifyError(result.error),
+            });
+        return;
+    }
+
+    const object = new Obj(result.data.type, result.data.identifier);
+
+    if (!graph.deleteObject(object)) {
+        res.status(409).json({
+            error: "Could not find the object",
+        });
+        return;
+    }
+
+    res.status(200).end();
+});
 
 // Modify existing object
 // app.put("/objects", (req, res) => {

@@ -261,4 +261,16 @@ export default class Graph {
 
         return true;
     }
+
+    deleteObject(obj: Obj): boolean {
+        const index = this.vertices.findIndex((vertex) =>
+            verticesAreEqual(vertex, obj)
+        );
+
+        if (index === -1) return false;
+
+        this.vertices.splice(index, 1);
+
+        return true;
+    }
 }
