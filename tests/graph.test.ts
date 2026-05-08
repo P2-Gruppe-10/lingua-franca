@@ -31,7 +31,7 @@ describe("A graph", () => {
 
         const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
 
-        expect(users).toEqual(new Set([Bob, Alice, Knud, Gertrud]));
+        expect(users).toStrictEqual(new Set([Bob, Alice, Knud, Gertrud]));
     });
 
     it("should find the target (DFS)", () => {
@@ -78,6 +78,6 @@ describe("A graph", () => {
         const graph = new Graph([], with_loop);
 
         const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
-        expect(users).toEqual(new Set([Bob, Alice, Knud, Gertrud]));
+        expect(users).toStrictEqual(new Set([Bob, Alice, Knud, Gertrud]));
     });
 });

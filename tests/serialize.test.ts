@@ -20,7 +20,7 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const read = await fs.readFile("./config.json");
 
-        expect(read.toString()).toBe(
+        expect(read.toString()).toStrictEqual(
             '{"vertices":[],"edges":[{"object":{"type":"EHR","identifier":"mortenEHR"},"name":"viewer","subject":{"object":{"type":"group","identifier":"læge"},"relationName":"member"}}]}'
         );
     });
@@ -55,6 +55,6 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const deserializedGraph = await deserializeConfig();
 
-        expect(deserializedGraph).toEqual(graph);
+        expect(deserializedGraph).toStrictEqual(graph);
     });
 });
