@@ -21,10 +21,8 @@ const ObjectSchema = z.object({
 });
 
 const ModifyObjectSchema = z.object({
-    typeOriginal: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
-    identifierOriginal: z.string().min(1),
-    typeModified: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
-    identifierModified: z.string().min(1),
+    original: ObjectSchema,
+    modified: ObjectSchema,
 });
 
 const UserSetSchema = z.object({
@@ -193,13 +191,13 @@ app.post("/objects", (req, res) => {
 
 // Remove object from graph
 app.delete("/objects", (req, res) => {
-    const result = ObjectSchema.safeParse(req.body);
+    const result = ObjectSchema.safeParse(req.query);
 
     if (!result.success) {
         res.status(400)
             .contentType("application/json")
             .json({
-                error: "Invalid post body",
+                error: "Invalid delete query",
                 details: z.treeifyError(result.error),
             });
         return;
@@ -225,19 +223,19 @@ app.put("/objects", (req, res) => {
         res.status(400)
             .contentType("application/json")
             .json({
-                error: "Invalid post body",
+                error: "Invalid put body",
                 details: z.treeifyError(result.error),
             });
         return;
     }
 
     const orginalObject = new Obj(
-        result.data.typeOriginal,
-        result.data.identifierOriginal
+        result.data.original.type,
+        result.data.original.identifier
     );
     const modifiedObject = new Obj(
-        result.data.typeModified,
-        result.data.identifierModified
+        result.data.modified.type,
+        result.data.modified.identifier
     );
 
     if (!graph.modifyObject(orginalObject, modifiedObject)) {
@@ -285,13 +283,13 @@ app.post("/subjects", (req, res) => {
 
 //Delete subject from graph
 app.delete("/subjects", (req, res) => {
-    const result = SubjectSchema.safeParse(req.body);
+    const result = SubjectSchema.safeParse(req.query);
 
     if (!result.success) {
         res.status(400)
             .contentType("application/json")
             .json({
-                error: "Invalid post body",
+                error: "Invalid delete query",
                 details: z.treeifyError(result.error),
             });
         return;
