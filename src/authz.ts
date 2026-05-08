@@ -1,4 +1,4 @@
-import { UserSet, Obj, type UserId } from "./acl.ts";
+import { UserSet, Obj } from "./acl.ts";
 import Graph, { TOMBSTONE } from "./graph.ts";
 import { Typeconfig } from "./typeconfig.ts";
 
@@ -63,57 +63,50 @@ export class AuthZ {
             .map((edge) => (edge.subject as UserSet).object);
     }
 
-    private resolveUserset(subject: UserSet): Set<UserId> {
-        const typeconfig = this.typeconfigs.get(subject.object.type);
-        if (!typeconfig) return new Set();
+    private hasRelation(
+        user: number,
+        object: Obj,
+        relation: string,
+        visited: Set<string> = new Set<string>()
+    ): boolean {
+        const visit = `${object.toString()}#${relation}`;
+        if (visited.has(visit)) return false;
+        visited.add(visit);
+        const typeconfig = this.typeconfigs.get(object.type);
+        if (!typeconfig) return false;
 
-        // finding direct paths first
-        const direct = this.graph
-            .getRelationsTo(subject.object)
-            .filter((edge) => edge.name === subject.relationName)
-            .map((edge) => edge.subject)
-            .flatMap((s) => {
-                if (typeof s === "number") return [s];
-                return [...this.resolveUserset(s)];
-            });
+        // first handling direct paths thru usersets present in the graph
+        if (this.graph.DFS(user, new UserSet(object, relation))) {
+            return true;
+        }
 
-        // plop those into a new set
-        const users = new Set(direct);
+        // then userset rewrites
+        const rewrites = typeconfig.usersetRewrites.get(relation);
+        if (!rewrites) return false; // if there are none, you're out of luck
 
-        // now its time to find the more indirect paths, those which go through rewrites
-        const rewrites = typeconfig.usersetRewrites.get(subject.relationName);
-        if (!rewrites) return users; // oop there are none, in other words the relation we are speaking of is defined to only be given to users with directly that relation on the object type
-
-        for (const term of rewrites) {
-            if (typeof term === "string") {
-                // if the rewrite is just a string (another simple relationName, aka computed userset) we recurseeeeee
-                for (const u of this.resolveUserset(
-                    new UserSet(subject.object, term)
-                )) {
-                    users.add(u);
-                }
+        for (const rewrite of rewrites) {
+            if (typeof rewrite === "string") {
+                // computed userset
+                if (this.hasRelation(user, object, rewrite, visited))
+                    return true;
             } else {
-                // otherwise we're dealing with a tuple-to-userset kinda situation
-                const targets = this.resolveTargets(
-                    subject.object,
-                    term.relation
-                );
+                // tuple-to-userset
+                const targets = this.resolveTargets(object, rewrite.relation);
                 for (const target of targets) {
-                    for (const u of this.resolveUserset(
-                        new UserSet(target, term.subRelation)
-                    )) {
-                        users.add(u);
+                    if (
+                        this.hasRelation(
+                            user,
+                            target,
+                            rewrite.subRelation,
+                            visited
+                        )
+                    ) {
+                        return true;
                     }
                 }
             }
         }
-
-        return users;
-    }
-
-    private hasRelation(user: number, object: Obj, relation: string): boolean {
-        // we just construct an auxillary userset with the notion of "everyone who has the relation on the object" and check if our user is in there
-        return this.resolveUserset(new UserSet(object, relation)).has(user);
+        return false; // if none of the previous steps gave us a true, they must not have the relation
     }
 
     /**
@@ -136,11 +129,7 @@ export class AuthZ {
                 continue; // it's not a rewrite rule but it also didn't give our user the green light, so skip
             }
             // otherwise the grant is a rewrite rule
-            // so we need to find tombstone usersets on this relation
             const targets = this.resolveTargets(object, grant.relation);
-
-            // now that we have a list of objects, we can call hasRelation on those.
-            // for example, if the grant is `parent->viewer` and the object is `doc:readme`, we find `doc:readme#parent@folder:home#...`, extract `folder:home`, and then check hasRelation(user, folder:home, "viewer").
             for (const target of targets) {
                 if (this.hasRelation(user, target, grant.subRelation)) {
                     return true;
@@ -151,52 +140,3 @@ export class AuthZ {
         return false;
     }
 }
-
-// const ehr = new Obj("EHR", "morten");
-// const doctor = new Obj("group", "doctor");
-// const chief = new Obj("group", "chief");
-//
-// const hurgAlpha = new Obj("hurg", "alpha");
-// const hurgBeta = new Obj("hurg", "beta");
-//
-// const blablagraph = new Graph(
-//     [],
-//     [
-//         new Relation(ehr, "viewer", new UserSet(doctor, "member")),
-//         new Relation(ehr, "editor", new UserSet(chief, "member")),
-//         new Relation(doctor, "parent", new UserSet(chief, TOMBSTONE)),
-//         new Relation(chief, "member", 0),
-//         new Relation(doctor, "member", 1),
-//         new Relation(ehr, "owner", 2),
-//         new Relation(hurgAlpha, "zoog", new UserSet(hurgBeta, TOMBSTONE)),
-//         new Relation(hurgBeta, "shingle", 0),
-//         new Relation(hurgAlpha, "zoog", 1),
-//         new Relation(chief, "admin", 3),
-//     ]
-// );
-// const ehrtc = await Typeconfig.fromFile("./schemas/EHR.tc");
-// const grouptc = await Typeconfig.fromFile("./schemas/group.tc");
-// const hurgtc = await Typeconfig.fromFile("./schemas/hurg.tc");
-//
-// const tcmap = new Map<string, Typeconfig>();
-// tcmap.set("EHR", ehrtc);
-// tcmap.set("group", grouptc);
-// tcmap.set("hurg", hurgtc);
-//
-// const authz = new AuthZ(blablagraph, tcmap);
-// const validation = authz.validate();
-// console.log(validation);
-//
-// if (validation.length === 0) {
-//     console.log(authz.hasPermission(0, ehr, "can_view"));
-//     console.log(authz.hasPermission(1, ehr, "can_view"));
-//     console.log(authz.hasPermission(0, ehr, "can_edit"));
-//     console.log(authz.hasPermission(1, ehr, "can_edit"));
-//     console.log(authz.hasPermission(2, ehr, "can_view"));
-//     console.log(authz.hasPermission(2, ehr, "can_edit"));
-//     console.log(authz.hasPermission(0, hurgAlpha, "ximploob"));
-//     console.log(authz.hasPermission(1, hurgAlpha, "ximploob"));
-//     console.log(authz.hasPermission(2, hurgAlpha, "ximploob"));
-//     console.log(authz.hasPermission(3, doctor, "can_fire"));
-//     console.log(authz.hasPermission(3, doctor, "can_edit"));
-// }

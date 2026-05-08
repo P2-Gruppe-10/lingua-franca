@@ -266,28 +266,25 @@ describe("AuthZ", () => {
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
         });
 
-        it.fails("cant handle cyclic userset rewrites yet", () => {
+        it("handles cyclical userset rewrites", () => {
             const cyclicTypeconfig = new Typeconfig(
                 docType,
-                new Set(["viewer", "editor"]),
+                new Set(["a", "b", "c"]),
                 new Map([
-                    ["viewer", new Set(["editor"])],
-                    ["editor", new Set(["viewer"])],
+                    ["a", new Set(["b"])],
+                    ["b", new Set(["a"])],
                 ]),
-                new Map([["can_view", new Set(["viewer"])]])
+                new Map([["can_a", new Set(["a"])]])
             );
 
-            const graph = new Graph(
-                [],
-                [new Relation(docObj, "editor", userId)]
-            );
+            const graph = new Graph([], [new Relation(docObj, "c", userId)]);
 
             const authz = new AuthZ(
                 graph,
                 new Map([[docType, cyclicTypeconfig]])
             );
 
-            authz.hasPermission(userId, docObj, "can_view");
+            authz.hasPermission(userId, docObj, "can_a");
         });
     });
 });
