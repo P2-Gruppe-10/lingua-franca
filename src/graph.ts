@@ -234,7 +234,7 @@ export default class Graph {
             verticesAreEqual(vertex, obj)
         );
 
-        if (!foundObj || !(foundObj instanceof Obj)) {
+        if (!(foundObj instanceof Obj)) {
             throw new Error(
                 "Edge object does not exist in graph, please create it first."
             );
