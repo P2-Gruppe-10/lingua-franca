@@ -169,4 +169,15 @@ export default class AuthZ {
 
         return false;
     }
+
+    updateGraph(graph: Graph): ValidationError[] {
+        const previousGraph = this.graph;
+        this.graph = graph;
+        const errors = this.validate();
+        if (errors.length > 0) {
+            this.graph = previousGraph;
+            return errors;
+        }
+        return [];
+    }
 }
