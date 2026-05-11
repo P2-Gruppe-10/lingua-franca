@@ -1,0 +1,81 @@
+{
+  "vertices": [],
+  "edges": [
+    {
+      "object": {
+        "type": "EHR",
+        "identifier": "morten"
+      },
+      "name": "viewer",
+      "subject": {
+        "object": {
+          "type": "group",
+          "identifier": "doctor"
+        },
+        "relationName": "member"
+      }
+    },
+    {
+      "object": {
+        "type": "group",
+        "identifier": "doctor"
+      },
+      "name": "parent",
+      "subject": {
+        "object": {
+          "type": "group",
+          "identifier": "chief"
+        },
+        "relationName": "..."
+      }
+    },
+    {
+      "object": {
+        "type": "group",
+        "identifier": "chief"
+      },
+      "name": "admine",
+      "subject": 0
+    },
+    {
+      "object": {
+        "type": "group",
+        "identifier": "chief"
+      },
+      "name": "member",
+      "subject": 1
+    },
+    {
+      "object": {
+        "type": "group",
+        "identifier": "doctor"
+      },
+      "name": "memberooski",
+      "subject": 2
+    },
+    {
+      "object": {
+        "type": "EHR",
+        "identifier": "morten"
+      },
+      "name": "viewer",
+      "subject": 1
+    },
+    {
+      "object": {
+        "type": "EHR",
+        "identifier": "morten"
+      },
+      "name": "viewer",
+      "subject": 3
+    },
+    {
+      "object": {
+        "type": "zoop",
+        "identifier": "chief"
+      },
+      "name": "admin",
+      "subject": 4
+    }
+  ]
+}
