@@ -318,19 +318,19 @@ export default class Graph {
         return false;
     }
 
-    addSubject(subject: UserId): boolean {
-        if (this.vertexInGraph(subject)) {
+    addSubject(userId: UserId): boolean {
+        if (this.vertexInGraph(userId)) {
             return false;
         }
 
-        this.vertices.push(subject);
+        this.vertices.push(userId);
 
         return true;
     }
 
-    deleteSubject(subject: UserId): boolean {
+    deleteSubject(userId: UserId): boolean {
         const index = this.vertices.findIndex((vertex) =>
-            verticesAreEqual(vertex, subject)
+            verticesAreEqual(vertex, userId)
         );
 
         if (index === -1) return false;
