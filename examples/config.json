@@ -20,13 +20,13 @@
         "type": "group",
         "identifier": "doctor"
       },
-      "name": "member",
+      "name": "parent",
       "subject": {
         "object": {
           "type": "group",
           "identifier": "chief"
         },
-        "relationName": "admin"
+        "relationName": "..."
       }
     },
     {
@@ -88,7 +88,7 @@
         "type": "group",
         "identifier": "chief"
       },
-      "name": "ASS!!",
+      "name": "admin",
       "subject": 4
     }
   ]
