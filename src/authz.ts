@@ -70,13 +70,13 @@ export default class AuthZ {
             console.log(
                 "\x1b[0;31mWarning:\x1b[0m the following typconfig-graph disparities were found:"
             );
-            errors
-                .map((error) =>
+            for (const error of errors) {
+                console.log(
                     error.kind === "missing_typeconfig"
                         ? `  \x1b[0;31m➜ Missing typeconfig: type ${error.type} has no config\x1b[0m`
                         : `  \x1b[0;31m➜ Invalid relation: type ${error.type} has no defined relation ${error.relationName}\x1b[0m`
-                )
-                .forEach(console.log); // wow eta reduction!
+                );
+            }
         }
         return errors;
     }
