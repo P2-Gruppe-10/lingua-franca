@@ -21,7 +21,6 @@
     // Style Options
     "noImplicitReturns": true,
     // "noImplicitOverride": true,
-    "noUnusedLocals": true,
     "noUnusedParameters": true,
     // "noFallthroughCasesInSwitch": true,
     // "noPropertyAccessFromIndexSignature": true,
@@ -38,5 +37,5 @@
     //"allowImportingTsExtensions": true
   },
   "exclude": ["./dist/**/*"],
-  "include": ["./src/**/*", "./tests/**/*", "./eslint.config.js"]
+  "include": ["./src/**/*", "./tests/**/*"]
 }

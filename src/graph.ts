@@ -12,6 +12,14 @@ import {
 
 type Vertex = Obj | UserId;
 
+function verticesAreEqual(a: Vertex, b: Vertex): boolean {
+    if (typeof a === "number") {
+        return a === b;
+    }
+
+    return a.isEqual(b as Obj);
+}
+
 /**
  * Tests wether an object is _shaped_ like a `Graph`.
  */
@@ -41,6 +49,16 @@ export default class Graph {
         this.edges = edges;
     }
 
+    vertexInGraph(vertex: Vertex): boolean {
+        return this.vertices.some((v) => verticesAreEqual(v, vertex));
+    }
+
+    subjectInGraph(subject: Subject): boolean {
+        const vertex: Vertex =
+            typeof subject === "number" ? subject : subject.object;
+        return this.vertexInGraph(vertex);
+    }
+
     // Methods for printing contents of a graph
     vertexStrings(): string[] {
         return this.vertices.map((vertex) => vertex.toString());
@@ -53,6 +71,17 @@ export default class Graph {
     getRelationsTo(vertex: Vertex): Relation[] {
         if (vertex instanceof Obj) {
             return this.edges.filter((edge) => vertex.isEqual(edge.object));
+        }
+        return [];
+    }
+
+    getRelationsFrom(vertex: Vertex): Relation[] {
+        if (vertex instanceof Obj) {
+            return this.edges.filter(
+                (edge) =>
+                    edge.subject instanceof UserSet &&
+                    vertex.isEqual(edge.subject.object)
+            );
         }
         return [];
     }
@@ -157,6 +186,107 @@ export default class Graph {
                 .map((rel) => rel.subject);
 
             stack.push(...subjects);
+        }
+
+        return false;
+    }
+
+    addEdge(obj: Obj, name: string, subject: Subject): void {
+        const foundObj = this.vertices.find((vertex) =>
+            verticesAreEqual(vertex, obj)
+        );
+
+        const foundSubject = this.vertices.find((vertex) =>
+            verticesAreEqual(
+                vertex,
+                subject instanceof UserSet ? subject.object : subject
+            )
+        );
+
+        if (!(foundObj instanceof Obj)) {
+            throw new Error(
+                "Edge object does not exist in graph, please create it first."
+            );
+        }
+
+        if (!foundSubject) {
+            throw new Error(
+                "Edge subject (UserId or UserSet.object) does not exist in graph, please create it first."
+            );
+        }
+
+        subject =
+            foundSubject instanceof Obj
+                ? new UserSet(foundSubject, (subject as UserSet).relationName)
+                : foundSubject;
+
+        const relation = new Relation(foundObj, name, subject);
+
+        if (this.edges.some((edge) => edge.isEqual(relation))) {
+            throw new Error("Edge already exists in graph");
+        }
+
+        this.edges.push(relation);
+    }
+
+    deleteEdge(relation: Relation): boolean {
+        const index = this.edges.findIndex((edge) => edge.isEqual(relation));
+
+        if (index === -1) return false;
+
+        this.edges.splice(index, 1);
+
+        return true;
+    }
+
+    addVertex(vertex: Vertex): boolean {
+        if (this.vertexInGraph(vertex)) {
+            return false;
+        }
+
+        this.vertices.push(vertex);
+
+        return true;
+    }
+
+    deleteVertex(vertex: Vertex): boolean {
+        //Find the index of the object in verticies to make sure it exists
+        const index = this.vertices.findIndex((v) =>
+            verticesAreEqual(v, vertex)
+        );
+
+        //If it does not exists return false
+        if (index === -1) return false;
+
+        //Find all the edges point to and from the object
+        const connectedEdges = [
+            ...this.getRelationsTo(vertex),
+            ...this.getRelationsFrom(vertex),
+        ];
+
+        //Delete all the edges pointing to and from the object
+        for (const edge of connectedEdges) {
+            this.deleteEdge(edge);
+        }
+
+        //Delete the object
+        this.vertices.splice(index, 1);
+
+        return true;
+    }
+
+    modifyObject(orginalObject: Obj, modifiedObject: Obj): boolean {
+        const vertex = this.vertices.find((vertex) =>
+            verticesAreEqual(vertex, orginalObject)
+        );
+
+        if (!vertex) return false;
+
+        if (vertex instanceof Obj) {
+            vertex.identifier = modifiedObject.identifier;
+            vertex.type = modifiedObject.type;
+
+            return true;
         }
 
         return false;
