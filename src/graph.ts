@@ -230,7 +230,11 @@ export default class Graph {
     }
 
     addEdge(obj: Obj, name: string, subject: Subject): void {
-        if (!this.vertexInGraph(obj)) {
+        const foundObj = this.vertices.find((vertex) =>
+            verticesAreEqual(vertex, obj)
+        );
+
+        if (!foundObj || !(foundObj instanceof Obj)) {
             throw new Error(
                 "Edge object does not exist in graph, please create it first."
             );
@@ -242,7 +246,7 @@ export default class Graph {
             );
         }
 
-        const relation = new Relation(obj, name, subject);
+        const relation = new Relation(foundObj, name, subject);
 
         if (this.edges.some((edge) => edge.isEqual(relation))) {
             throw new Error("Edge already exists in graph");
