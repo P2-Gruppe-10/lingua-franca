@@ -234,17 +234,29 @@ export default class Graph {
             verticesAreEqual(vertex, obj)
         );
 
+        const foundSubject = this.vertices.find((vertex) =>
+            verticesAreEqual(
+                vertex,
+                subject instanceof UserSet ? subject.object : subject
+            )
+        );
+
         if (!(foundObj instanceof Obj)) {
             throw new Error(
                 "Edge object does not exist in graph, please create it first."
             );
         }
 
-        if (!this.subjectInGraph(subject)) {
+        if (!foundSubject) {
             throw new Error(
                 "Edge subject (UserId or UserSet.object) does not exist in graph, please create it first."
             );
         }
+
+        subject =
+            foundSubject instanceof Obj
+                ? new UserSet(foundSubject, (subject as UserSet).relationName)
+                : foundSubject;
 
         const relation = new Relation(foundObj, name, subject);
 
