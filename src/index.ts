@@ -6,10 +6,11 @@ import AuthZ from "./authz.ts";
 
 const app = express();
 const port = 3000;
+app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
+
 const graph = await deserializeConfig();
 const authz = await AuthZ.withDir(graph, "./schemas/");
-console.log(authz.validate());
-app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
+authz.validateWithWarnings();
 
 const AuthorizeQuerySchema = z.object({
     objectId: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
