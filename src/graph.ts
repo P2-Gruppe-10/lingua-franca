@@ -277,20 +277,20 @@ export default class Graph {
         return true;
     }
 
-    addObject(obj: Obj): boolean {
-        if (this.vertexInGraph(obj)) {
+    addVertex(vertex: Vertex): boolean {
+        if (this.vertexInGraph(vertex)) {
             return false;
         }
 
-        this.vertices.push(obj);
+        this.vertices.push(vertex);
 
         return true;
     }
 
-    deleteObject(obj: Obj): boolean {
+    deleteVertex(vertex: Vertex): boolean {
         //Find the index of the object in verticies to make sure it exists
-        const index = this.vertices.findIndex((vertex) =>
-            verticesAreEqual(vertex, obj)
+        const index = this.vertices.findIndex((v) =>
+            verticesAreEqual(v, vertex)
         );
 
         //If it does not exists return false
@@ -298,8 +298,8 @@ export default class Graph {
 
         //Find all the edges point to and from the object
         const connectedEdges = [
-            ...this.getRelationsTo(obj),
-            ...this.getRelationsFrom(obj),
+            ...this.getRelationsTo(vertex),
+            ...this.getRelationsFrom(vertex),
         ];
 
         //Delete all the edges pointing to and from the object
@@ -328,27 +328,5 @@ export default class Graph {
         }
 
         return false;
-    }
-
-    addSubject(userId: UserId): boolean {
-        if (this.vertexInGraph(userId)) {
-            return false;
-        }
-
-        this.vertices.push(userId);
-
-        return true;
-    }
-
-    deleteSubject(userId: UserId): boolean {
-        const index = this.vertices.findIndex((vertex) =>
-            verticesAreEqual(vertex, userId)
-        );
-
-        if (index === -1) return false;
-
-        this.vertices.splice(index, 1);
-
-        return true;
     }
 }

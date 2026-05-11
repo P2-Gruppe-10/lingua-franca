@@ -179,7 +179,7 @@ app.post("/objects", (req, res) => {
 
     const object = new Obj(result.data.type, result.data.identifier);
 
-    if (!graph.addObject(object)) {
+    if (!graph.addVertex(object)) {
         res.status(409).json({
             error: "Object already exists",
         });
@@ -205,7 +205,7 @@ app.delete("/objects", (req, res) => {
 
     const object = new Obj(result.data.type, result.data.identifier);
 
-    if (!graph.deleteObject(object)) {
+    if (!graph.deleteVertex(object)) {
         res.status(409).json({
             error: "Could not find the object",
         });
@@ -271,7 +271,7 @@ app.post("/subjects", (req, res) => {
 
     const subject: UserId = result.data;
 
-    if (!graph.addSubject(subject)) {
+    if (!graph.addVertex(subject)) {
         res.status(409).json({
             error: "Subject already exists",
         });
@@ -304,7 +304,7 @@ app.delete("/subjects", (req, res) => {
 
     const subject: UserId = result.data;
 
-    if (!graph.deleteSubject(subject)) {
+    if (!graph.deleteVertex(subject)) {
         res.status(409).json({
             error: "Subject does not exist",
         });
