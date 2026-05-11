@@ -32,20 +32,6 @@
     {
       "object": {
         "type": "group",
-        "identifier": "doctor"
-      },
-      "name": "member",
-      "subject": {
-        "object": {
-          "type": "group",
-          "identifier": "chief"
-        },
-        "relationName": "member"
-      }
-    },
-    {
-      "object": {
-        "type": "group",
         "identifier": "chief"
       },
       "name": "admin",
