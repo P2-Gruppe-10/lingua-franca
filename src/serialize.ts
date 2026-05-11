@@ -8,9 +8,11 @@ export async function serializeConfig(graph: Graph): Promise<void> {
 
     //Gets current time and time of last backup
     const now = moment().format("YYYY-MM-DDTHH:mm:ss");
-    const lastBackup = (await fs.readFile("./lastBackupTime.txt"))
-        .toString()
-        .trim();
+    const lastBackup = (
+        await fs
+            .readFile("./lastBackupTime.txt", { encoding: "utf-8" })
+            .catch(() => "")
+    ).trim();
 
     //Compare if at least one hour since last backup - if so create new backup
     if (moment(now).isAfter(lastBackup, "hour")) {
