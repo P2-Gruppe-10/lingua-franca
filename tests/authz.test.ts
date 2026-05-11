@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
 import Graph, { TOMBSTONE } from "../src/graph.ts";
-import { Typeconfig } from "../src/typeconfig.ts";
-import { AuthZ } from "../src/authz.ts";
+import Typeconfig from "../src/typeconfig.ts";
+import AuthZ from "../src/authz.ts";
 
 const docType = "doc";
 const folderType = "folder";

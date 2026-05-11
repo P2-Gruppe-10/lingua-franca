@@ -4,65 +4,65 @@
     {
       "object": {
         "type": "EHR",
-        "identifier": "Morten's"
+        "identifier": "morten"
       },
       "name": "viewer",
       "subject": {
         "object": {
-          "type": "Group",
-          "identifier": "Læge"
+          "type": "group",
+          "identifier": "doctor"
         },
         "relationName": "member"
       }
     },
     {
       "object": {
-        "type": "Group",
-        "identifier": "Læge"
+        "type": "group",
+        "identifier": "doctor"
       },
       "name": "member",
       "subject": {
         "object": {
-          "type": "Group",
-          "identifier": "Over Læge"
+          "type": "group",
+          "identifier": "chief"
         },
         "relationName": "admin"
       }
     },
     {
       "object": {
-        "type": "Group",
-        "identifier": "Læge"
+        "type": "group",
+        "identifier": "doctor"
       },
       "name": "member",
       "subject": {
         "object": {
-          "type": "Group",
-          "identifier": "Over Læge"
+          "type": "group",
+          "identifier": "chief"
         },
         "relationName": "member"
       }
     },
     {
       "object": {
-        "type": "Group",
-        "identifier": "Over Læge"
+        "type": "group",
+        "identifier": "chief"
       },
       "name": "admin",
       "subject": 0
     },
     {
       "object": {
-        "type": "Group",
-        "identifier": "Over Læge"
+        "type": "group",
+        "identifier": "chief"
       },
       "name": "member",
       "subject": 1
     },
     {
       "object": {
-        "type": "Group",
-        "identifier": "Læge"
+        "type": "group",
+        "identifier": "doctor"
       },
       "name": "member",
       "subject": 2
@@ -70,7 +70,7 @@
     {
       "object": {
         "type": "EHR",
-        "identifier": "Morten's"
+        "identifier": "morten"
       },
       "name": "viewer",
       "subject": 1
@@ -78,15 +78,15 @@
     {
       "object": {
         "type": "EHR",
-        "identifier": "Morten's"
+        "identifier": "morten"
       },
       "name": "viewer",
       "subject": 3
     },
     {
       "object": {
-        "type": "Group",
-        "identifier": "Over Læge"
+        "type": "group",
+        "identifier": "chief"
       },
       "name": "ASS!!",
       "subject": 4

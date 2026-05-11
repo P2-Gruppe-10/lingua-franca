@@ -1,5 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { TypeconfigError } from "./error.ts";
+import type { PathLike } from "node:fs";
+import path from "node:path";
 
 export interface RewriteRule {
     relation: string; // must be a valid relation on this type
@@ -27,7 +29,7 @@ const splitFileLines = (string: string) => string.split(/\r?\n/);
 /**
  * The configuration for a type of object
  */
-export class Typeconfig implements TypeconfigData {
+export default class Typeconfig implements TypeconfigData {
     type: string;
     validRelations: Set<string>;
     usersetRewrites: UsersetRewriteMap;
@@ -235,3 +237,16 @@ export class Typeconfig implements TypeconfigData {
         }
     }
 }
+
+export const typeconfigsFromDir = async (
+    dir: PathLike
+): Promise<Typeconfig[]> => {
+    const entries = (await readdir(dir, { withFileTypes: true })).filter(
+        (dirent) => dirent.isFile() && dirent.name.endsWith(".tc")
+    ); // looking at the entries in some dir and taking only .tc files
+    return await Promise.all(
+        entries.map((entry) =>
+            Typeconfig.fromFile(path.join(entry.parentPath, entry.name))
+        )
+    ); // map each of those files to a parsed Typeconfig
+};

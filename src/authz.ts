@@ -1,6 +1,7 @@
+import type { PathLike } from "node:fs";
 import { UserSet, Obj } from "./acl.ts";
 import Graph, { TOMBSTONE } from "./graph.ts";
-import { Typeconfig } from "./typeconfig.ts";
+import Typeconfig, { typeconfigsFromDir } from "./typeconfig.ts";
 
 type ValidationError =
     | { kind: "missing_typeconfig"; type: string }
@@ -9,13 +10,25 @@ type ValidationError =
 /**
  * The Authorization system, being the result of harmony between a graph and a set of typeconfigs.
  * */
-export class AuthZ {
+export default class AuthZ {
     graph: Graph;
     typeconfigs: Map<string, Typeconfig>;
 
-    constructor(graph: Graph, typeconfig: Map<string, Typeconfig>) {
+    constructor(graph: Graph, typeconfigs: Map<string, Typeconfig>) {
         this.graph = graph;
-        this.typeconfigs = typeconfig;
+        this.typeconfigs = typeconfigs;
+    }
+
+    static async withDir(graph: Graph, dir: PathLike) {
+        const typeconfigs = await typeconfigsFromDir(dir);
+
+        // map each typeconfig to its type
+        const typeconfigMap = new Map<string, Typeconfig>();
+        typeconfigs.forEach((typeconfig) => {
+            typeconfigMap.set(typeconfig.type, typeconfig);
+        });
+
+        return new AuthZ(graph, typeconfigMap);
     }
 
     /**

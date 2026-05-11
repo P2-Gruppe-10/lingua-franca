@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { promises as fs } from "node:fs";
-import { Typeconfig } from "../src/typeconfig.ts";
+import Typeconfig from "../src/typeconfig.ts";
 import { TypeconfigError } from "../src/error.ts";
 
 describe("The Typeconfig class", { timeout: 2000 }, () => {

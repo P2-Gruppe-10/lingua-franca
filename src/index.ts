@@ -2,10 +2,13 @@ import express from "express";
 import { z } from "zod";
 import { Obj, Relation, UserSet, type Subject, type UserId } from "./acl.ts";
 import { deserializeConfig } from "./serialize.ts";
+import AuthZ from "./authz.ts";
 
 const app = express();
 const port = 3000;
 const graph = await deserializeConfig();
+const authz = await AuthZ.withDir(graph, "./schemas/");
+console.log(authz.validate());
 app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
 
 const AuthorizeQuerySchema = z.object({
