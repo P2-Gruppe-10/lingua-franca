@@ -9,7 +9,7 @@ fi
 npm run build
 node . &
 server_pid=$!
-if [ $? -ne 0 ]; then
+if [[ $? != 0 ]]; then
     echo failed to run server, exit code: $?
     exit 1
 else
@@ -49,7 +49,7 @@ runtest() {
 
 endtest() {
     number_tests=$(($number_tests + 1))
-    if [ $? -ne 0 ]; then
+    if [[ $? != 0 ]]; then
         echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
         number_failed=$(($number_failed + 1))
     else
@@ -67,7 +67,7 @@ endtest() {
 }
 
 endtest-if-failed() {
-    if [ $? -ne 0 ]; then
+    if [[ $? != 0 ]]; then
         endtest
     fi
 }
@@ -76,7 +76,7 @@ endtest-expect-fail() {
     number_tests=$(($number_tests + 1))
 
     # Was the statuscode not a success code, or the last command fialed
-    if [[ "$1" != "2"* ]] || [ $? -ne 0 ]; then
+    if [[ "$1" != "2"* ]] || [[ $? != 0 ]]; then
         echo -e "${YELLOW}failed test expectedly: \"$current_test_name\"${RESET}"
         number_expected_failed=$(($number_expected_failed + 1))
     else
