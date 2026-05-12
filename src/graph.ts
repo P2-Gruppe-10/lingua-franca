@@ -10,7 +10,9 @@ import {
     type JsonObject,
 } from "./acl.ts";
 
-type Vertex = Obj | UserId;
+export const TOMBSTONE = "..."; // we use this to let a UserSet represent just an object. used by typeconfigs to cross-reference different types
+
+export type Vertex = Obj | UserId;
 
 function verticesAreEqual(a: Vertex, b: Vertex): boolean {
     if (typeof a === "number") {
@@ -149,6 +151,10 @@ export default class Graph {
         // We know the subject is a userset
         const userset = subject;
 
+        if (userset.relationName === TOMBSTONE) {
+            return new Set(); // we skip the tombstones in userset resolution because they don't actually point to any UserIds
+        }
+
         // First, get all relations pointing to the object
         const users = this.getRelationsTo(userset.object)
             // Next, only take the relations which have the correct name
@@ -275,20 +281,25 @@ export default class Graph {
         return true;
     }
 
-    modifyObject(orginalObject: Obj, modifiedObject: Obj): boolean {
+    modifyObject(orginal: Obj, modified: Obj): boolean {
         const vertex = this.vertices.find((vertex) =>
-            verticesAreEqual(vertex, orginalObject)
+            verticesAreEqual(vertex, orginal)
         );
 
         if (!vertex) return false;
 
         if (vertex instanceof Obj) {
-            vertex.identifier = modifiedObject.identifier;
-            vertex.type = modifiedObject.type;
+            vertex.identifier = modified.identifier;
+            vertex.type = modified.type;
 
             return true;
         }
 
         return false;
+    }
+
+    // clone using round-trip serialization, because the deserialization is already awesome we can just use that wow
+    clone(): Graph {
+        return Graph.fromJSON(this.stringify());
     }
 }

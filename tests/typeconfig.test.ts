@@ -1,33 +1,31 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { promises as fs } from "node:fs";
-import { Typeconfig } from "../src/typeconfig.ts";
+import Typeconfig from "../src/typeconfig.ts";
 import { TypeconfigError } from "../src/error.ts";
 
 describe("The Typeconfig class", { timeout: 2000 }, () => {
     const validTestFilePath = "./valid_test.typeconfig";
     const errorTestFilePath = "./error_test.typeconfig";
-    const outFilePath = "./test_out.json";
 
     beforeAll(async () => {
         const validConfig = `
 type doc
 
 relation viewer
-
 relation editor
-give viewer
-
 relation owner
-give editor
 
-permission read = viewer OR editor
-permission write = editor OR owner
+give viewer if editor
+give editor if owner
+
+permission read = viewer + editor
+permission write = editor + owner
 permission delete = owner
 `;
         await fs.writeFile(validTestFilePath, validConfig);
     });
 
-    it("should successfully parse a valid config file", async () => {
+    it("parses a valid config file", async () => {
         const config = await Typeconfig.fromFile(validTestFilePath);
 
         expect(config.type).toBe("doc");
@@ -36,59 +34,64 @@ permission delete = owner
         expect(config.validRelations.has("editor")).toBeTruthy();
         expect(config.validRelations.has("owner")).toBeTruthy();
 
-        const rules = [...config.relationRules];
-        expect(rules.length).toBe(2);
-        expect(rules[0]).toEqual({ affected: "editor", give: "viewer" });
-        expect(rules[1]).toEqual({ affected: "owner", give: "editor" });
+        const editorRewrite = config.usersetRewrites.get("editor");
+        const viewerRewrite = config.usersetRewrites.get("viewer");
 
-        const perms = [...config.permissions];
-        expect(perms.length).toBe(3);
+        expect(editorRewrite).toBeDefined();
+        expect(viewerRewrite).toBeDefined();
+        expect([...editorRewrite!]).toEqual(["owner"]);
+        expect([...viewerRewrite!]).toEqual(["editor"]);
 
-        const readPerm = perms.find((p) => p.name === "read");
+        const perms = config.permissions;
+        expect(perms.size).toBe(3);
+
+        const readPerm = perms.get("read");
         expect(readPerm).toBeDefined();
-        if (!readPerm) return; // avoid the "!" operator (readPerm!) because eslint HATES that
-        expect([...readPerm.grantedBy]).toEqual(["viewer", "editor"]);
+        if (!readPerm) return;
+        expect([...readPerm]).toEqual(["viewer", "editor"]);
     });
 
-    it("should serialize the parsed config correctly", async () => {
+    it("parses tuple-to-userset rewrite rules in relations and permissions", async () => {
+        const rewriteConfig = `
+type doc
+
+relation parent
+relation viewer
+relation editor
+relation access
+
+give access if parent has viewer
+
+permission can_view = parent:viewer + viewer
+`;
+        await fs.writeFile(validTestFilePath, rewriteConfig);
+
         const config = await Typeconfig.fromFile(validTestFilePath);
-        await config.saveToFile(outFilePath);
 
-        const readJSON = await fs.readFile(outFilePath, "utf-8");
+        const accessRewrite = config.usersetRewrites.get("access");
+        expect(accessRewrite).toBeDefined();
+        expect([...accessRewrite!]).toEqual([
+            { relation: "parent", subRelation: "viewer" },
+        ]);
 
-        interface JsonParsedTypeconfig {
-            type: string;
-            validRelations: string[];
-            relations: {
-                affected: string;
-                give: string[];
-            }[];
-            permissions: {
-                name: string;
-                grantedBy: string[];
-            }[];
-        }
+        const canView = config.permissions.get("can_view");
+        expect(canView).toBeDefined();
+        if (!canView) return;
 
-        const parsedJSON = JSON.parse(readJSON) as JsonParsedTypeconfig;
-
-        expect(parsedJSON.type).toBe("doc");
-        expect(Array.isArray(parsedJSON.validRelations)).toBeTruthy();
-        expect(parsedJSON.validRelations).toEqual([
+        expect([...canView]).toEqual([
+            { relation: "parent", subRelation: "viewer" },
             "viewer",
-            "editor",
-            "owner",
         ]);
     });
 
-    it("should throw an error for malformed OR logic", async () => {
+    it("throws an error for malformed permission logic", async () => {
         const badLogicConfig = `
 type doc
 
 relation viewer
-
 relation editor
 
-permission read = viewer OR
+permission read = viewer +
 `;
         await fs.writeFile(errorTestFilePath, badLogicConfig);
 
@@ -100,14 +103,12 @@ permission read = viewer OR
         );
     });
 
-    it("should throw an error for duplicate relations", async () => {
+    it("throws an error for duplicate relations", async () => {
         const dupRelationConfig = `
 type doc
 
 relation viewer
-
 relation editor
-
 relation viewer
 `;
         await fs.writeFile(errorTestFilePath, dupRelationConfig);
@@ -120,7 +121,7 @@ relation viewer
         );
     });
 
-    it("should throw an error if no type is defined", async () => {
+    it("throws an error if no type is defined", async () => {
         const noTypeConfig = `
 relation viewer
 

@@ -9,8 +9,13 @@
     "module": "nodenext",
     "target": "esnext",
     // For nodejs:
-    "lib": ["esnext"],
-    "types": ["node", "express"],
+    "lib": [
+      "esnext"
+    ],
+    "types": [
+      "node",
+      "express"
+    ],
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
@@ -36,6 +41,11 @@
     "rewriteRelativeImportExtensions": true
     //"allowImportingTsExtensions": true
   },
-  "exclude": ["./dist/**/*"],
-  "include": ["./src/**/*", "./tests/**/*"]
+  "exclude": [
+    "./dist/**/*"
+  ],
+  "include": [
+    "./src/**/*",
+    "./tests/**/*"
+  ]
 }

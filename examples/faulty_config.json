@@ -34,7 +34,7 @@
         "type": "group",
         "identifier": "chief"
       },
-      "name": "admin",
+      "name": "admine",
       "subject": 0
     },
     {
@@ -50,7 +50,7 @@
         "type": "group",
         "identifier": "doctor"
       },
-      "name": "member",
+      "name": "memberooski",
       "subject": 2
     },
     {
@@ -71,7 +71,7 @@
     },
     {
       "object": {
-        "type": "group",
+        "type": "zoop",
         "identifier": "chief"
       },
       "name": "admin",

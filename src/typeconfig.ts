@@ -1,67 +1,51 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { TypeconfigError } from "./error.ts";
+import type { PathLike } from "node:fs";
+import path from "node:path";
 
-export interface Rule {
-    affected: string;
-    give: string;
+export interface RewriteRule {
+    relation: string; // must be a valid relation on this type
+    subRelation: string; // relation to check on the referenced object
 }
 
-export interface Permission {
-    name: string;
-    grantedBy: Set<string>; // we only implement "sufficient" conditions because a "necessary" AND set of relations is quite a rare circumstance, especially for EHDS
-}
+// userset terms are either computed usersets or tuple-to-usersets (so a single relation or a relation plus a sub-relation on a different object)
+export type UsersetTerm = string | RewriteRule;
+// userset rewrites are unions of userset terms, so the 1 or more lines under a relation that start with "give"
+export type UsersetRewrite = Set<UsersetTerm>;
+export type UsersetRewriteMap = Map<string, UsersetRewrite>;
+export type PermissionGrants = Set<string | RewriteRule>;
+export type PermissionMap = Map<string, PermissionGrants>;
 
 export interface TypeconfigData {
     type: string | undefined;
     validRelations: Set<string>;
-    relationRules: Set<Rule>;
-    permissions: Set<Permission>;
+    usersetRewrites: UsersetRewriteMap;
+    permissions: PermissionMap;
 }
 
-interface TypeconfigState extends TypeconfigData {
-    inside: string[] | undefined;
-}
-
-function splitByWhitespace(string: string): string[] {
-    return string.trim().split(/\s+/); // regular expression that takes 1 or more spaces
-}
-
-function splitFileLines(string: string): string[] {
-    return string.split(/\r?\n/); // splits by \n but also optionally \r because Windows puts those sometimes
-}
+const splitByWhitespace = (string: string) => string.trim().split(/\s+/);
+const splitFileLines = (string: string) => string.split(/\r?\n/);
 
 /**
  * The configuration for a type of object
  */
-export class Typeconfig implements TypeconfigData {
+export default class Typeconfig implements TypeconfigData {
     type: string;
     validRelations: Set<string>;
-    relationRules: Set<Rule>;
-    permissions: Set<Permission>;
+    usersetRewrites: UsersetRewriteMap;
+    permissions: PermissionMap;
 
     // this is mostly just used by the fromFile method
     constructor(
         type: string,
         validRelations: Set<string>,
-        relationRules: Set<Rule>,
-        permissions: Set<Permission>
+        usersetRewrites: UsersetRewriteMap,
+        permissions: PermissionMap
     ) {
         this.type = type;
         this.validRelations = validRelations;
-        this.relationRules = relationRules;
+        this.usersetRewrites = usersetRewrites;
         this.permissions = permissions;
-    }
-
-    async saveToFile(path: string) {
-        await writeFile(
-            path,
-            JSON.stringify(
-                this,
-                (_, value): unknown =>
-                    value instanceof Set ? [...value] : value, // this is needed because JSON can't stringify Sets
-                2
-            )
-        );
     }
 
     /**
@@ -69,20 +53,31 @@ export class Typeconfig implements TypeconfigData {
      * This is the intended way to instantiate the Typeconfig class.
      */
     static async fromFile(path: string) {
-        // temporary state that lets type be undefined, and has an inside field to know where we are in the parsing process
-        const state: TypeconfigState = {
+        // temporary state that lets type be undefined
+        const state: TypeconfigData = {
             type: undefined,
             validRelations: new Set(),
-            relationRules: new Set(),
-            permissions: new Set(),
-            inside: undefined,
+            usersetRewrites: new Map(),
+            permissions: new Map(),
         };
 
         const file = await readFile(path, { encoding: "utf-8" });
 
-        splitFileLines(file).forEach((line, index) => {
-            Typeconfig.readLine(line, index + 1, state);
-        });
+        for (const [index, line] of splitFileLines(file).entries()) {
+            if (line.trim() === "") continue; // skip empty lines obvs
+            const tokens = splitByWhitespace(line);
+            try {
+                Typeconfig.handleGlobal(tokens, state);
+            } catch (error) {
+                if (error instanceof TypeconfigError) {
+                    throw new TypeconfigError(
+                        `Error on line ${(index + 1).toString()} ("${line.trim()}")\n  -> ${error.message}`,
+                        { cause: error }
+                    ); // doing this for line number context without having to pass the index through every handler
+                }
+                throw error;
+            }
+        }
 
         // by the end of the parsing, a type is needed
         if (state.type === undefined) {
@@ -92,54 +87,27 @@ export class Typeconfig implements TypeconfigData {
         return new Typeconfig(
             state.type,
             state.validRelations,
-            state.relationRules,
+            state.usersetRewrites,
             state.permissions
         );
     }
 
-    private static readLine(
-        line: string,
-        lineNumber: number,
-        state: TypeconfigState
-    ) {
-        if (line.trim() === "") {
-            state.inside = undefined; // also useful because it lets us know when we are leaving a scope
-            return;
-        }
-        const tokens = splitByWhitespace(line);
-        try {
-            if (state.inside === undefined) {
-                Typeconfig.handleGlobal(tokens, state);
-                return;
-            }
-            if (state.inside[0] === "relation") {
-                Typeconfig.handleRelation(tokens, state);
-                return;
-            }
-        } catch (error) {
-            if (error instanceof TypeconfigError) {
-                throw new TypeconfigError(
-                    `Error on line ${lineNumber.toString()} ("${line.trim()}")\n  -> ${error.message}`,
-                    { cause: error }
-                );
-            }
-            throw error;
+    private static assertRelationExists(name: string, state: TypeconfigData) {
+        if (!state.validRelations.has(name)) {
+            throw new TypeconfigError(`Relation "${name}" is not defined.`);
         }
     }
 
-    private static handlePermission(tokens: string[], state: TypeconfigState) {
+    private static handlePermission(tokens: string[], state: TypeconfigData) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const [_, permissionName, equalsSign, ...logicTokens] = tokens;
         if (!permissionName || equalsSign !== "=" || logicTokens.length === 0) {
             throw new TypeconfigError(
-                `Permissions must be defined like so: permission [name] = [relation] OR [relation] OR ...`
+                `Permissions must be defined like so: permission [name] = [relation|otherRelation:relation] + [relation|otherRelation:relation] + ...`
             );
         }
 
-        const alreadyExists = [...state.permissions].some(
-            (p) => p.name === permissionName
-        );
-        if (alreadyExists) {
+        if (state.permissions.has(permissionName)) {
             throw new TypeconfigError(
                 `Permission "${permissionName}" is already defined.`
             );
@@ -147,79 +115,75 @@ export class Typeconfig implements TypeconfigData {
 
         if (logicTokens.length % 2 === 0) {
             throw new TypeconfigError(
-                `Malformed permission logic. Did you leave a dangling "OR" or forget a relation?`
-            ); // if the length of the logic tokens are equal, it can't possibly be relation names with ORs between em, since that would be an odd amount of entries
+                `Malformed permission logic. Did you leave a dangling "+" or forget a relation?`
+            ); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
         }
 
-        const grantedBy = new Set<string>();
+        const grantedBy = new Set<string | RewriteRule>();
 
-        logicTokens.forEach((token, index) => {
-            if (index % 2 === 0) {
-                // even entry indices should be relations ([relation, or, relation] has relations on index 0 and 2)
-                if (token === "OR") {
+        for (const token of logicTokens) {
+            if (token === "+") continue;
+            if (token.includes(":")) {
+                const [relation, subRelation] = token.split(":");
+                if (!relation || !subRelation) {
                     throw new TypeconfigError(
-                        `Unexpected "OR". Expected a relation name.`
+                        `Malformed rewrite rule ${token}.`
                     );
                 }
-                if (!state.validRelations.has(token)) {
-                    throw new TypeconfigError(
-                        `Relation "${token}" is not defined.`
-                    );
-                }
-                grantedBy.add(token);
-            } else {
-                // odd entry indices should be OR ([relation, or, relation] has "or" on index 1)
-                if (token !== "OR") {
-                    throw new TypeconfigError(
-                        `Expected "OR" between relations, got "${token}".`
-                    );
-                }
+                Typeconfig.assertRelationExists(relation, state);
+                grantedBy.add({ relation, subRelation });
+                continue;
             }
-        });
+            Typeconfig.assertRelationExists(token, state);
+            grantedBy.add(token);
+        }
 
-        state.permissions.add({
-            name: permissionName,
-            grantedBy: grantedBy,
-        });
+        state.permissions.set(permissionName, grantedBy);
     }
 
     /**
      * handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
      */
-    private static handleRelation(tokens: string[], state: TypeconfigState) {
-        const [command, target, ...extra] = tokens;
-        if (!command || !target || extra.length > 0) {
+    private static handleGive(tokens: string[], state: TypeconfigData) {
+        if (tokens[0] !== "give" || tokens[2] !== "if") {
+            throw new TypeconfigError(`Malformed give syntax.`);
+        }
+
+        if (tokens.length !== 4 && tokens.length !== 6) {
             throw new TypeconfigError(
-                `Relation must have 2 tokens (e.g. "give owner"), got ${tokens.length.toString()}`
+                `Userset term must be "give X if Y" or "give X if Y has Z".`
             );
         }
-        if (command === "give") {
-            if (!state.validRelations.has(target)) {
-                throw new TypeconfigError(`Relation ${target} is not defined.`);
-            }
 
-            const affected = state.inside?.[1];
-            if (!affected) {
-                // theoretically this error should never ever happen. but makes typescript happy c:
-                throw new TypeconfigError("Missing current relation context.");
-            }
+        /* eslint-disable @typescript-eslint/no-non-null-assertion */
+        const relationGiven = tokens[1]!;
+        const relationReceiving = tokens[3]!;
 
-            state.relationRules.add({
-                affected: affected,
-                give: target,
-            });
+        Typeconfig.assertRelationExists(relationGiven, state);
+
+        let term: UsersetTerm;
+
+        if (tokens.length === 6) {
+            if (tokens[4] !== "has") {
+                throw new TypeconfigError(`Malformed give syntax.`);
+            }
+            const subRelation = tokens[5]!;
+            term = { relation: relationReceiving, subRelation };
         } else {
-            throw new TypeconfigError(
-                `Invalid command "${command}" inside a relation block. Expected "give", or did you forget a blank line?`
-            );
+            term = relationReceiving;
         }
+        /* eslint-enable @typescript-eslint/no-non-null-assertion */
+
+        const existing = state.usersetRewrites.get(relationGiven);
+        if (existing) existing.add(term);
+        else state.usersetRewrites.set(relationGiven, new Set([term]));
     }
 
     /**
      * handles the lines where we are not inside anything
      * currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
      */
-    private static handleGlobal(tokens: string[], state: TypeconfigState) {
+    private static handleGlobal(tokens: string[], state: TypeconfigData) {
         const [keyword, value, ...extra] = tokens;
 
         if (!keyword || !value) {
@@ -255,7 +219,10 @@ export class Typeconfig implements TypeconfigData {
                     );
                 }
                 state.validRelations.add(value);
-                state.inside = tokens;
+                break;
+            }
+            case "give": {
+                Typeconfig.handleGive(tokens, state);
                 break;
             }
             case "permission": {
@@ -270,3 +237,16 @@ export class Typeconfig implements TypeconfigData {
         }
     }
 }
+
+export const typeconfigsFromDir = async (
+    dir: PathLike
+): Promise<Typeconfig[]> => {
+    const entries = (await readdir(dir, { withFileTypes: true })).filter(
+        (dirent) => dirent.isFile() && dirent.name.endsWith(".tc")
+    ); // looking at the entries in some dir and taking only .tc files
+    return await Promise.all(
+        entries.map((entry) =>
+            Typeconfig.fromFile(path.join(entry.parentPath, entry.name))
+        )
+    ); // map each of those files to a parsed Typeconfig
+};

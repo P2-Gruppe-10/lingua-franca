@@ -1,0 +1,10 @@
+type hurg
+
+relation zoog
+relation plink
+relation shingle
+
+give plink if zoog
+give shingle if zoog has shingle
+
+permission ximploob = shingle + zoog

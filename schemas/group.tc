@@ -1,0 +1,16 @@
+type group
+
+relation parent
+relation member
+relation admin
+relation manager
+relation auxillary
+
+give member if parent has member
+give admin if parent has admin
+give manager if parent has manager
+give manager if admin
+
+permission can_fire = manager + admin
+permission can_edit = admin + parent:auxillary
+permission onlyauxillaryonthis = auxillary
