@@ -123,7 +123,51 @@ export default class Graph {
             }
 
             if (isGraphShape(val)) {
-                return new Graph(val.vertices, val.edges);
+                const graph = new Graph(val.vertices, val.edges);
+                // make sure all objects in the edges are references to objects in the vertices array.
+                graph.edges = graph.edges.map((edge) => {
+                    // First find the object in the vertices array which corresponds to the "object" member of the edge
+                    const to: Obj = edge.object;
+                    const actualTo = graph.vertices.find((v) =>
+                        verticesAreEqual(v, to)
+                    );
+                    if (!(actualTo instanceof Obj)) {
+                        throw new Error(
+                            `Edge has object not found in vertices. Object: "${to.toString()}"`
+                        );
+                    }
+
+                    let subject: Subject;
+                    if (edge.subject instanceof UserSet) {
+                        // If the "subject" member of the edge is a UserSet, find the object in the UserSet
+                        const object = edge.subject.object;
+                        const actualFrom = graph.vertices.find((v) =>
+                            verticesAreEqual(v, object)
+                        );
+                        if (!(actualFrom instanceof Obj))
+                            throw new Error(
+                                `Edge userset object not defined in vertices. Object: "${object.toString()}"`
+                            );
+
+                        subject = new UserSet(
+                            actualFrom,
+                            edge.subject.relationName
+                        );
+                    } else {
+                        // If the "subject" member of the edge is a UserId, make sure it is defined.
+                        if (!graph.vertices.includes(edge.subject))
+                            throw new Error(
+                                `Edge has user not defined in vertices. UserID: "${edge.subject}"`
+                            );
+
+                        subject = edge.subject;
+                    }
+
+                    // We now have correct references to objects in the "vertices array"
+                    return new Relation(actualTo, edge.name, subject);
+                });
+
+                return graph;
             }
 
             throw new Error(
