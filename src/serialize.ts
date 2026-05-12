@@ -11,11 +11,12 @@ export async function serializeConfig(graph: Graph): Promise<void> {
     const lastBackup = (
         await fs
             .readFile("./lastBackupTime.txt", { encoding: "utf-8" })
-            .catch(() => "")
+            .catch(() => "1970-01-01T00:00:00")
     ).trim();
 
     //Compare if at least one hour since last backup - if so create new backup
-    if (moment(now).isAfter(lastBackup, "hour")) {
+    if (moment(now).isAfter(moment(lastBackup).add(1, "hours"))) {
+        await fs.mkdir("./backup/", { recursive: true });
         //Create filepath string for new backup
         const backupFileName = "./backup/" + now + ".json";
 
