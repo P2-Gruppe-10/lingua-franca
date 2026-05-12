@@ -16,6 +16,7 @@ export async function serializeConfig(graph: Graph): Promise<void> {
 
     //Compare if at least one hour since last backup - if so create new backup
     if (moment(now).isAfter(lastBackup, "hour")) {
+        await fs.mkdir("./backup/", { recursive: true });
         //Create filepath string for new backup
         const backupFileName = "./backup/" + now + ".json";
 
