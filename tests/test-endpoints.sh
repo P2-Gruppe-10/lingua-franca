@@ -159,7 +159,7 @@ endtest
 runtest "delete object"
 
 curl_body=$(
-    curl localhost:3000/objects?type="EHR"\&identifier="Bob" \
+    curl localhost:3000/objects?type=EHR\&identifier=Bob \
         -X DELETE \
         -H "Accept: application/json" \
         --max-time 5 \
@@ -251,7 +251,7 @@ endtest
 runtest "delete relation"
 
 curl_body=$(
-    curl "localhost:3000/relations?objectType=\"EHR\"\&objectIdentifier=\"Bobs leg surgery\"\&name=\"viewer\"\&subject=$user" \
+    curl "localhost:3000/relations?objectType=EHR&objectIdentifier=Bobs%20leg%20surgery&name=viewer&subject=$user" \
         -X DELETE \
         -H "Accept: application/json" \
         --max-time 5 \

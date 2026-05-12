@@ -31,7 +31,7 @@ const UserSetSchema = z.object({
     relationName: z.string().min(1),
 });
 
-const SubjectSchema = z.union([UserSetSchema, z.number()]);
+const SubjectSchema = z.union([UserSetSchema, z.coerce.number()]);
 
 const RelationSchema = z.object({
     object: ObjectSchema, // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
