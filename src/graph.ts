@@ -157,7 +157,7 @@ export default class Graph {
                         // If the "subject" member of the edge is a UserId, make sure it is defined.
                         if (!graph.vertices.includes(edge.subject))
                             throw new Error(
-                                `Edge has user not defined in vertices. UserID: "${edge.subject}"`
+                                `Edge has user not defined in vertices. UserID: "${edge.subject.toString()}"`
                             );
 
                         subject = edge.subject;
