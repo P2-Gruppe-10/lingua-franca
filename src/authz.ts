@@ -1,6 +1,6 @@
 import type { PathLike } from "node:fs";
-import { UserSet, Obj } from "./acl.ts";
-import Graph, { TOMBSTONE } from "./graph.ts";
+import { UserSet, Obj, type Subject, Relation } from "./acl.ts";
+import Graph, { TOMBSTONE, type Vertex } from "./graph.ts";
 import Typeconfig, { typeconfigsFromDir } from "./typeconfig.ts";
 
 type ValidationError =
@@ -35,11 +35,11 @@ export default class AuthZ {
      * Validates harmony between the graph and typeconfig inside the AuthZ object.
      * Returns a (possibly empty) list of ValidationErrors.
      * */
-    validate(): ValidationError[] {
+    validate(graph: Graph = this.graph): ValidationError[] {
         const errors: ValidationError[] = [];
         const typesWithoutConfigs = new Set<string>();
 
-        for (const edge of this.graph.edges) {
+        for (const edge of graph.edges) {
             const type = edge.object.type;
             const typeconfig = this.typeconfigs.get(type);
 
@@ -54,6 +54,13 @@ export default class AuthZ {
                     type,
                     relationName: edge.name,
                 });
+            }
+        }
+
+        for (const vertex of graph.vertices) {
+            if (typeof vertex === "number") continue;
+            if (!this.typeconfigs.get(vertex.type)) {
+                typesWithoutConfigs.add(vertex.type);
             }
         }
 
@@ -170,14 +177,37 @@ export default class AuthZ {
         return false;
     }
 
-    updateGraph(graph: Graph): ValidationError[] {
-        const previousGraph = this.graph;
-        this.graph = graph;
-        const errors = this.validate();
-        if (errors.length > 0) {
-            this.graph = previousGraph;
-            return errors;
-        }
-        return [];
+    addEdge(obj: Obj, name: string, subject: Subject): ValidationError[] {
+        const candidate = this.graph.clone();
+        candidate.addEdge(obj, name, subject);
+        const errors = this.validate(candidate);
+        if (errors.length === 0) this.graph = candidate;
+        return errors;
+    }
+
+    addVertex(vertex: Vertex): ValidationError[] | null {
+        const candidate = this.graph.clone();
+        const applied = candidate.addVertex(vertex);
+        if (!applied) return null;
+        const errors = this.validate(candidate);
+        if (errors.length === 0) this.graph = candidate;
+        return errors;
+    }
+
+    modifyObject(original: Obj, modified: Obj): ValidationError[] | null {
+        const candidate = this.graph.clone();
+        const applied = candidate.modifyObject(original, modified);
+        if (!applied) return null;
+        const errors = this.validate(candidate);
+        if (errors.length === 0) this.graph = candidate;
+        return errors;
+    }
+
+    deleteEdge(relation: Relation): boolean {
+        return this.graph.deleteEdge(relation);
+    }
+
+    deleteVertex(vertex: Vertex): boolean {
+        return this.graph.deleteVertex(vertex);
     }
 }

@@ -14,7 +14,7 @@ authz.validateWithWarnings();
 
 const AuthorizeQuerySchema = z.object({
     objectId: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
-    relationName: z.string().min(1),
+    permission: z.string().min(1),
     type: z.string().min(1),
     userId: z.coerce.number().min(0), // we coerce because the input will be something like "1" and we want 1
 });
@@ -57,26 +57,14 @@ app.get("/authorize", (req, res) => {
     }
 
     // at this point we know that the request fits the schema, so the types are ensured
-    const { type, objectId, relationName, userId } = result.data;
-
-    const relation = new Relation(
-        new Obj(type, objectId),
-        relationName,
-        userId
-    ); // merely constructing this to include its zanzibar-style string form in the response
-
+    const { type, objectId, permission, userId } = result.data;
     const object = new Obj(type, objectId);
-    const users = graph.resolveSubjects(new UserSet(object, relationName));
 
-    if (users.has(userId)) {
-        res.status(200).send(
-            `Relation <code>${relation.toString()}</code> exists; permission granted`
-        );
-    } else {
-        res.status(403).send(
-            `Relation <code>${relation.toString()}</code> does not exist; permission denied`
-        ); // 401 Unauthorized seems more fitting, but for some reason, it actually means Unauthenticated. Known misnomer. 403 is standard for when the user is actually unauthorized
+    if (authz.hasPermission(userId, object, permission)) {
+        res.status(200).end();
+        return;
     }
+    res.status(403).end(); // 401 Unauthorized seems more fitting, but for some reason, it actually means Unauthenticated. Known misnomer. 403 is standard for when the user is actually unauthorized
 });
 
 app.post("/relations", (req, res) => {
@@ -108,7 +96,11 @@ app.post("/relations", (req, res) => {
     }
 
     try {
-        graph.addEdge(obj, name, subject);
+        const errors = authz.addEdge(obj, name, subject);
+        if (errors.length > 0) {
+            res.status(422).json({ errors: errors });
+            return;
+        }
     } catch (err) {
         if (!(err instanceof Error)) {
             console.error("Error is unknown type: ", err);
@@ -157,7 +149,7 @@ app.delete("/relations", (req, res) => {
 
     const relation = new Relation(obj, name, subject);
 
-    if (!graph.deleteEdge(relation)) {
+    if (!authz.deleteEdge(relation)) {
         res.status(409).json({
             error: "Could not delete edge; does not exist",
         });
@@ -183,14 +175,18 @@ app.post("/objects", (req, res) => {
     }
 
     const object = new Obj(result.data.type, result.data.identifier);
+    const modificationResult = authz.addVertex(object);
 
-    if (!graph.addVertex(object)) {
+    if (modificationResult === null) {
         res.status(409).json({
             error: "Object already exists",
         });
         return;
     }
-
+    if (modificationResult.length > 0) {
+        res.status(422).json({ errors: modificationResult });
+        return;
+    }
     res.status(200).end();
 });
 
@@ -210,7 +206,7 @@ app.delete("/objects", (req, res) => {
 
     const object = new Obj(result.data.type, result.data.identifier);
 
-    if (!graph.deleteVertex(object)) {
+    if (!authz.deleteVertex(object)) {
         res.status(409).json({
             error: "Could not find the object",
         });
@@ -234,19 +230,24 @@ app.put("/objects", (req, res) => {
         return;
     }
 
-    const orginalObject = new Obj(
+    const orginal = new Obj(
         result.data.original.type,
         result.data.original.identifier
     );
-    const modifiedObject = new Obj(
+    const modified = new Obj(
         result.data.modified.type,
         result.data.modified.identifier
     );
 
-    if (!graph.modifyObject(orginalObject, modifiedObject)) {
+    const modificationResult = authz.modifyObject(orginal, modified);
+    if (modificationResult === null) {
         res.status(409).json({
             error: "Could not find the object to modify",
         });
+        return;
+    }
+    if (modificationResult.length > 0) {
+        res.status(422).json({ errors: modificationResult });
         return;
     }
 
@@ -276,7 +277,7 @@ app.post("/subjects", (req, res) => {
 
     const subject: UserId = result.data;
 
-    if (!graph.addVertex(subject)) {
+    if (!authz.addVertex(subject)) {
         res.status(409).json({
             error: "Subject already exists",
         });
@@ -309,7 +310,7 @@ app.delete("/subjects", (req, res) => {
 
     const subject: UserId = result.data;
 
-    if (!graph.deleteVertex(subject)) {
+    if (!authz.deleteVertex(subject)) {
         res.status(409).json({
             error: "Subject does not exist",
         });

@@ -12,7 +12,7 @@ import {
 
 export const TOMBSTONE = "..."; // we use this to let a UserSet represent just an object. used by typeconfigs to cross-reference different types
 
-type Vertex = Obj | UserId;
+export type Vertex = Obj | UserId;
 
 function verticesAreEqual(a: Vertex, b: Vertex): boolean {
     if (typeof a === "number") {
@@ -281,20 +281,25 @@ export default class Graph {
         return true;
     }
 
-    modifyObject(orginalObject: Obj, modifiedObject: Obj): boolean {
+    modifyObject(orginal: Obj, modified: Obj): boolean {
         const vertex = this.vertices.find((vertex) =>
-            verticesAreEqual(vertex, orginalObject)
+            verticesAreEqual(vertex, orginal)
         );
 
         if (!vertex) return false;
 
         if (vertex instanceof Obj) {
-            vertex.identifier = modifiedObject.identifier;
-            vertex.type = modifiedObject.type;
+            vertex.identifier = modified.identifier;
+            vertex.type = modified.type;
 
             return true;
         }
 
         return false;
+    }
+
+    // clone using round-trip serialization, because the deserialization is already awesome we can just use that wow
+    clone(): Graph {
+        return Graph.fromJSON(this.stringify());
     }
 }
