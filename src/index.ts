@@ -4,6 +4,7 @@ import { Obj, Relation, UserSet, type Subject, type UserId } from "./acl.ts";
 import { deserializeConfig } from "./serialize.ts";
 import AuthZ from "./authz.ts";
 
+process.title = "lingua";
 const app = express();
 const port = 3000;
 app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
@@ -34,10 +35,17 @@ const UserSetSchema = z.object({
     relationName: z.string().min(1),
 });
 
-const SubjectSchema = z.union([UserSetSchema, z.number()]);
+const SubjectSchema = z.union([UserSetSchema, z.coerce.number()]);
 
-const RelationsQuerySchema = z.object({
+const RelationSchema = z.object({
     object: ObjectSchema, // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    name: z.string().min(1),
+    subject: SubjectSchema,
+});
+
+const RelationQuerySchema = z.object({
+    objectType: z.string().min(1),
+    objectIdentifier: z.string().min(1),
     name: z.string().min(1),
     subject: SubjectSchema,
 });
@@ -68,7 +76,7 @@ app.get("/authorize", (req, res) => {
 });
 
 app.post("/relations", (req, res) => {
-    const result = RelationsQuerySchema.safeParse(req.body);
+    const result = RelationSchema.safeParse(req.body);
 
     if (!result.success) {
         res.status(400)
@@ -120,7 +128,7 @@ app.post("/relations", (req, res) => {
 
 // Remove relation from graph
 app.delete("/relations", (req, res) => {
-    const result = RelationsQuerySchema.safeParse(req.query);
+    const result = RelationQuerySchema.safeParse(req.query);
 
     if (!result.success) {
         res.status(400)
@@ -132,9 +140,9 @@ app.delete("/relations", (req, res) => {
         return;
     }
 
-    const { object, name } = result.data;
+    const { objectType, objectIdentifier, name } = result.data;
 
-    const obj = new Obj(object.type, object.identifier);
+    const obj = new Obj(objectType, objectIdentifier);
 
     let subject: Subject;
     // subject is UserId
@@ -256,7 +264,9 @@ app.put("/objects", (req, res) => {
 
 //Add subject to graph
 app.post("/subjects", (req, res) => {
-    const result = SubjectSchema.safeParse(req.body);
+    const result = z
+        .object({ userId: z.coerce.number().min(0) })
+        .safeParse(req.body);
 
     if (!result.success) {
         res.status(400)
@@ -268,14 +278,7 @@ app.post("/subjects", (req, res) => {
         return;
     }
 
-    if (typeof result.data !== "number") {
-        res.status(409).json({
-            error: "Subject must be a number",
-        });
-        return;
-    }
-
-    const subject: UserId = result.data;
+    const subject: UserId = result.data.userId;
 
     if (!authz.addVertex(subject)) {
         res.status(409).json({
@@ -289,7 +292,9 @@ app.post("/subjects", (req, res) => {
 
 //Delete subject from graph
 app.delete("/subjects", (req, res) => {
-    const result = SubjectSchema.safeParse(req.query);
+    const result = z
+        .object({ userId: z.coerce.number().min(0) })
+        .safeParse(req.query);
 
     if (!result.success) {
         res.status(400)
@@ -301,14 +306,7 @@ app.delete("/subjects", (req, res) => {
         return;
     }
 
-    if (typeof result.data !== "number") {
-        res.status(409).json({
-            error: "Subject must be a number",
-        });
-        return;
-    }
-
-    const subject: UserId = result.data;
+    const subject: UserId = result.data.userId;
 
     if (!authz.deleteVertex(subject)) {
         res.status(409).json({
