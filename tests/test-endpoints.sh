@@ -48,7 +48,6 @@ runtest() {
 
 
 endtest() {
-    number_tests=$(($number_tests + 1))
     if [[ $? != 0 ]]; then
         echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
         number_failed=$(($number_failed + 1))
@@ -56,10 +55,13 @@ endtest() {
         number_succeeded=$(($number_succeeded + 1))
         echo -e "${GREEN}succeeded test: \"$current_test_name\"${RESET}"
     fi
+    number_tests=$(($number_tests + 1))
 
     if [ -n "$curl_body" ] && jq empty >/dev/null 2>&1 <<<"$curl_body"; then 
+        echo "json response:"
         jq 2>/dev/null <<<"$curl_body"
     else
+        echo "text response:"
         echo "$curl_body"
     fi
 
@@ -73,8 +75,6 @@ endtest-if-failed() {
 }
 
 endtest-expect-fail() {
-    number_tests=$(($number_tests + 1))
-
     # Was the statuscode not a success code, or the last command fialed
     if [[ "$1" != "2"* ]] || [[ $? != 0 ]]; then
         echo -e "${YELLOW}failed test expectedly: \"$current_test_name\"${RESET}"
@@ -83,6 +83,7 @@ endtest-expect-fail() {
         number_failed=$(($number_failed + 1))
         echo -e "${RED}Failed test unexpectedly: \"$current_test_name\"${RESET}"
     fi
+    number_tests=$(($number_tests + 1))
 
     echo
 }
