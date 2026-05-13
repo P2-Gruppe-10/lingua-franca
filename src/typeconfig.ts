@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import type { PathLike } from "node:fs";
 import path from "node:path";
+import { TypeconfigError } from "./error.ts";
 
 export interface RewriteRule {
     relation: string; // must be a valid relation on this type
@@ -69,8 +70,8 @@ export default class Typeconfig implements TypeconfigData {
             try {
                 Typeconfig.handleGlobal(tokens, state);
             } catch (error) {
-                if (error instanceof Error) {
-                    throw new Error(
+                if (error instanceof TypeconfigError) {
+                    throw new TypeconfigError(
                         `Error on line ${(index + 1).toString()} ("${line.trim()}")\n  -> ${error.message}`,
                         { cause: error }
                     ); // doing this for line number context without having to pass the index through every handler
@@ -81,7 +82,7 @@ export default class Typeconfig implements TypeconfigData {
 
         // by the end of the parsing, a type is needed
         if (state.type === undefined) {
-            throw new Error("No type was ever specified.");
+            throw new TypeconfigError("No type was ever specified.");
         }
 
         return new Typeconfig(state.type, state.validRelations, state.usersetRewrites, state.permissions);
@@ -89,7 +90,7 @@ export default class Typeconfig implements TypeconfigData {
 
     private static assertRelationExists(name: string, state: TypeconfigData) {
         if (!state.validRelations.has(name)) {
-            throw new Error(`Relation "${name}" is not defined.`);
+            throw new TypeconfigError(`Relation "${name}" is not defined.`);
         }
     }
 
@@ -97,17 +98,17 @@ export default class Typeconfig implements TypeconfigData {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const [_, permissionName, equalsSign, ...logicTokens] = tokens;
         if (!permissionName || equalsSign !== "=" || logicTokens.length === 0) {
-            throw new Error(
+            throw new TypeconfigError(
                 `Permissions must be defined like so: permission [name] = [relation|otherRelation:relation] + [relation|otherRelation:relation] + ...`
             );
         }
 
         if (state.permissions.has(permissionName)) {
-            throw new Error(`Permission "${permissionName}" is already defined.`);
+            throw new TypeconfigError(`Permission "${permissionName}" is already defined.`);
         }
 
         if (logicTokens.length % 2 === 0) {
-            throw new Error(`Malformed permission logic. Did you leave a dangling "+" or forget a relation?`); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
+            throw new TypeconfigError(`Malformed permission logic. Did you leave a dangling "+" or forget a relation?`); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
         }
 
         const grantedBy = new Set<string | RewriteRule>();
@@ -117,7 +118,7 @@ export default class Typeconfig implements TypeconfigData {
             if (token.includes(":")) {
                 const [relation, subRelation] = token.split(":");
                 if (!relation || !subRelation) {
-                    throw new Error(`Malformed rewrite rule ${token}.`);
+                    throw new TypeconfigError(`Malformed rewrite rule ${token}.`);
                 }
                 Typeconfig.assertRelationExists(relation, state);
                 grantedBy.add({ relation, subRelation });
@@ -135,11 +136,11 @@ export default class Typeconfig implements TypeconfigData {
      */
     private static handleGive(tokens: string[], state: TypeconfigData) {
         if (tokens[0] !== "give" || tokens[2] !== "if") {
-            throw new Error(`Malformed give syntax.`);
+            throw new TypeconfigError(`Malformed give syntax.`);
         }
 
         if (tokens.length !== 4 && tokens.length !== 6) {
-            throw new Error(`Userset term must be "give X if Y" or "give X if Y has Z".`);
+            throw new TypeconfigError(`Userset term must be "give X if Y" or "give X if Y has Z".`);
         }
 
         /* eslint-disable @typescript-eslint/no-non-null-assertion */
@@ -153,7 +154,7 @@ export default class Typeconfig implements TypeconfigData {
         if (tokens.length === 6) {
             // If length is 6, then term is a conditional rule
             if (tokens[4] !== "has") {
-                throw new Error(`Malformed give syntax.`);
+                throw new TypeconfigError(`Malformed give syntax.`);
             }
             const subRelation = tokens[5]!;
             term = { relation: relationReceiving, subRelation };
@@ -176,7 +177,7 @@ export default class Typeconfig implements TypeconfigData {
         const [keyword, value, ...extra] = tokens;
 
         if (!keyword || !value) {
-            throw new Error(
+            throw new TypeconfigError(
                 `Header must have at least 2 tokens (e.g. "type doc", "relation viewer", "permission can_view = viewer"), got ${tokens.length.toString()}.`
             );
         }
@@ -184,23 +185,25 @@ export default class Typeconfig implements TypeconfigData {
         switch (keyword) {
             case "type": {
                 if (extra.length > 0) {
-                    throw new Error(`"type" definition should only have 2 tokens, got ${tokens.length.toString()}.`);
+                    throw new TypeconfigError(
+                        `"type" definition should only have 2 tokens, got ${tokens.length.toString()}.`
+                    );
                 }
                 // type already specified
                 if (state.type !== undefined) {
-                    throw new Error(`Type is already defined as "${state.type}".`);
+                    throw new TypeconfigError(`Type is already defined as "${state.type}".`);
                 }
                 state.type = value;
                 break;
             }
             case "relation": {
                 if (extra.length > 0) {
-                    throw new Error(
+                    throw new TypeconfigError(
                         `"relation" definition should only have 2 tokens, got ${tokens.length.toString()}.`
                     );
                 }
                 if (state.validRelations.has(value)) {
-                    throw new Error(`Relation ${value} is already defined.`);
+                    throw new TypeconfigError(`Relation ${value} is already defined.`);
                 }
                 state.validRelations.add(value);
                 break;
@@ -214,7 +217,9 @@ export default class Typeconfig implements TypeconfigData {
                 break;
             }
             default: {
-                throw new Error(`Unknown keyword "${keyword}". Expected "type", "relation", or "permission".`);
+                throw new TypeconfigError(
+                    `Unknown keyword "${keyword}". Expected "type", "relation", or "permission".`
+                );
             }
         }
     }
