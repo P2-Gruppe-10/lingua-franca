@@ -74,9 +74,7 @@ export default class AuthZ {
     validateWithWarnings(): ValidationError[] {
         const errors = this.validate();
         if (errors.length > 0) {
-            console.log(
-                "\x1b[0;31mWarning:\x1b[0m the following typconfig-graph disparities were found:"
-            );
+            console.log("\x1b[0;31mWarning:\x1b[0m the following typconfig-graph disparities were found:");
             for (const error of errors) {
                 console.log(
                     error.kind === "missing_typeconfig"
@@ -92,11 +90,7 @@ export default class AuthZ {
         return this.graph
             .getRelationsTo(object)
             .filter((edge) => edge.name === relation)
-            .filter(
-                (edge) =>
-                    edge.subject instanceof UserSet &&
-                    edge.subject.relationName === SENTINEL
-            )
+            .filter((edge) => edge.subject instanceof UserSet && edge.subject.relationName === SENTINEL)
             .map((edge) => (edge.subject as UserSet).object);
     }
 
@@ -125,20 +119,12 @@ export default class AuthZ {
         for (const rewrite of rewrites) {
             if (typeof rewrite === "string") {
                 // computed userset
-                if (this.hasRelation(user, object, rewrite, visited))
-                    return true;
+                if (this.hasRelation(user, object, rewrite, visited)) return true;
             } else {
                 // tuple-to-userset
                 const targets = this.resolveTargets(object, rewrite.relation);
                 for (const target of targets) {
-                    if (
-                        this.hasRelation(
-                            user,
-                            target,
-                            rewrite.subRelation,
-                            visited
-                        )
-                    ) {
+                    if (this.hasRelation(user, target, rewrite.subRelation, visited)) {
                         return true;
                     }
                 }
@@ -181,8 +167,7 @@ export default class AuthZ {
     addEdge(obj: Obj, name: string, subject: Subject): ValidationError[] {
         this.graph.addEdge(obj, name, subject);
         const errors = this.validate();
-        if (errors.length > 0)
-            this.graph.deleteEdge(new Relation(obj, name, subject));
+        if (errors.length > 0) this.graph.deleteEdge(new Relation(obj, name, subject));
         return errors;
     }
 

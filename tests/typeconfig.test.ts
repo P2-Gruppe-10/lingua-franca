@@ -70,18 +70,13 @@ permission can_view = parent:viewer + viewer
 
         const accessRewrite = config.usersetRewrites.get("access");
         expect(accessRewrite).toBeDefined();
-        expect([...accessRewrite!]).toEqual([
-            { relation: "parent", subRelation: "viewer" },
-        ]);
+        expect([...accessRewrite!]).toEqual([{ relation: "parent", subRelation: "viewer" }]);
 
         const canView = config.permissions.get("can_view");
         expect(canView).toBeDefined();
         if (!canView) return;
 
-        expect([...canView]).toEqual([
-            { relation: "parent", subRelation: "viewer" },
-            "viewer",
-        ]);
+        expect([...canView]).toEqual([{ relation: "parent", subRelation: "viewer" }, "viewer"]);
     });
 
     it("throws an error for malformed permission logic", async () => {
@@ -95,12 +90,8 @@ permission read = viewer +
 `;
         await fs.writeFile(errorTestFilePath, badLogicConfig);
 
-        await expect(
-            Typeconfig.fromFile(errorTestFilePath)
-        ).rejects.toBeInstanceOf(TypeconfigError);
-        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toThrow(
-            /Malformed permission logic/
-        );
+        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toBeInstanceOf(TypeconfigError);
+        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toThrow(/Malformed permission logic/);
     });
 
     it("throws an error for duplicate relations", async () => {
@@ -113,12 +104,8 @@ relation viewer
 `;
         await fs.writeFile(errorTestFilePath, dupRelationConfig);
 
-        await expect(
-            Typeconfig.fromFile(errorTestFilePath)
-        ).rejects.toBeInstanceOf(TypeconfigError);
-        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toThrow(
-            /is already defined/
-        );
+        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toBeInstanceOf(TypeconfigError);
+        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toThrow(/is already defined/);
     });
 
     it("throws an error if no type is defined", async () => {
@@ -129,11 +116,7 @@ permission read = viewer
 `;
         await fs.writeFile(errorTestFilePath, noTypeConfig);
 
-        await expect(
-            Typeconfig.fromFile(errorTestFilePath)
-        ).rejects.toBeInstanceOf(TypeconfigError);
-        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toThrow(
-            /No type was ever specified/
-        );
+        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toBeInstanceOf(TypeconfigError);
+        await expect(Typeconfig.fromFile(errorTestFilePath)).rejects.toThrow(/No type was ever specified/);
     });
 });

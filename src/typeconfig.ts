@@ -84,12 +84,7 @@ export default class Typeconfig implements TypeconfigData {
             throw new Error("No type was ever specified.");
         }
 
-        return new Typeconfig(
-            state.type,
-            state.validRelations,
-            state.usersetRewrites,
-            state.permissions
-        );
+        return new Typeconfig(state.type, state.validRelations, state.usersetRewrites, state.permissions);
     }
 
     private static assertRelationExists(name: string, state: TypeconfigData) {
@@ -108,15 +103,11 @@ export default class Typeconfig implements TypeconfigData {
         }
 
         if (state.permissions.has(permissionName)) {
-            throw new Error(
-                `Permission "${permissionName}" is already defined.`
-            );
+            throw new Error(`Permission "${permissionName}" is already defined.`);
         }
 
         if (logicTokens.length % 2 === 0) {
-            throw new Error(
-                `Malformed permission logic. Did you leave a dangling "+" or forget a relation?`
-            ); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
+            throw new Error(`Malformed permission logic. Did you leave a dangling "+" or forget a relation?`); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
         }
 
         const grantedBy = new Set<string | RewriteRule>();
@@ -148,9 +139,7 @@ export default class Typeconfig implements TypeconfigData {
         }
 
         if (tokens.length !== 4 && tokens.length !== 6) {
-            throw new Error(
-                `Userset term must be "give X if Y" or "give X if Y has Z".`
-            );
+            throw new Error(`Userset term must be "give X if Y" or "give X if Y has Z".`);
         }
 
         /* eslint-disable @typescript-eslint/no-non-null-assertion */
@@ -195,15 +184,11 @@ export default class Typeconfig implements TypeconfigData {
         switch (keyword) {
             case "type": {
                 if (extra.length > 0) {
-                    throw new Error(
-                        `"type" definition should only have 2 tokens, got ${tokens.length.toString()}.`
-                    );
+                    throw new Error(`"type" definition should only have 2 tokens, got ${tokens.length.toString()}.`);
                 }
                 // type already specified
                 if (state.type !== undefined) {
-                    throw new Error(
-                        `Type is already defined as "${state.type}".`
-                    );
+                    throw new Error(`Type is already defined as "${state.type}".`);
                 }
                 state.type = value;
                 break;
@@ -229,23 +214,15 @@ export default class Typeconfig implements TypeconfigData {
                 break;
             }
             default: {
-                throw new Error(
-                    `Unknown keyword "${keyword}". Expected "type", "relation", or "permission".`
-                );
+                throw new Error(`Unknown keyword "${keyword}". Expected "type", "relation", or "permission".`);
             }
         }
     }
 }
 
-export const typeconfigsFromDir = async (
-    dir: PathLike
-): Promise<Typeconfig[]> => {
+export const typeconfigsFromDir = async (dir: PathLike): Promise<Typeconfig[]> => {
     const entries = (await readdir(dir, { withFileTypes: true })).filter(
         (dirent) => dirent.isFile() && dirent.name.endsWith(".tc")
     ); // looking at the entries in some dir and taking only .tc files
-    return await Promise.all(
-        entries.map((entry) =>
-            Typeconfig.fromFile(path.join(entry.parentPath, entry.name))
-        )
-    ); // map each of those files to a parsed Typeconfig
+    return await Promise.all(entries.map((entry) => Typeconfig.fromFile(path.join(entry.parentPath, entry.name)))); // map each of those files to a parsed Typeconfig
 };

@@ -10,9 +10,7 @@ describe("Serialization", { timeout: 1000 }, () => {
         const læge = new Obj("group", "læge");
 
         const vertices: Vertex[] = [mortenEHR, læge];
-        const edges: Relation[] = [
-            new Relation(mortenEHR, "viewer", new UserSet(læge, "member")),
-        ];
+        const edges: Relation[] = [new Relation(mortenEHR, "viewer", new UserSet(læge, "member"))];
 
         const graph = new Graph(vertices, edges);
 
@@ -38,18 +36,7 @@ describe("Serialization", { timeout: 1000 }, () => {
     const morten = 5;
     const ib = 6; // not used in the edges
 
-    const vertices: Vertex[] = [
-        mortenEhr,
-        læge,
-        overLæge,
-        morten,
-        bob,
-        alice,
-        knud,
-        gertrud,
-        martin,
-        ib,
-    ];
+    const vertices: Vertex[] = [mortenEhr, læge, overLæge, morten, bob, alice, knud, gertrud, martin, ib];
 
     const edges: Relation[] = [
         new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),

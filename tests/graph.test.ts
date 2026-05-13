@@ -16,18 +16,7 @@ describe("A graph", () => {
     const morten = 5;
     const ib = 6; // not used in the edges
 
-    const vertices: Vertex[] = [
-        mortenEhr,
-        læge,
-        overLæge,
-        morten,
-        bob,
-        alice,
-        knud,
-        gertrud,
-        martin,
-        ib,
-    ];
+    const vertices: Vertex[] = [mortenEhr, læge, overLæge, morten, bob, alice, knud, gertrud, martin, ib];
 
     const edges: Relation[] = [
         new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
@@ -63,9 +52,7 @@ describe("A graph", () => {
 
         expect(graph.DFS(martin, userset)).toBeFalsy();
         expect(graph.DFS(bob, 37)).toBeFalsy();
-        expect(
-            graph.DFS(bob, new UserSet(mortenEhr, "silkeborger"))
-        ).toBeFalsy();
+        expect(graph.DFS(bob, new UserSet(mortenEhr, "silkeborger"))).toBeFalsy();
     });
 
     it("should find the target (DFS) and handle loops", () => {
@@ -81,8 +68,6 @@ describe("A graph", () => {
 
         expect(graph.DFS(martin, userset)).toBeFalsy();
         expect(graph.DFS(0, 37)).toBeFalsy();
-        expect(
-            graph.DFS(bob, new UserSet(mortenEhr, "silkeborger"))
-        ).toBeFalsy();
+        expect(graph.DFS(bob, new UserSet(mortenEhr, "silkeborger"))).toBeFalsy();
     });
 });

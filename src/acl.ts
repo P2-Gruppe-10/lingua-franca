@@ -36,10 +36,7 @@ export class UserSet {
     }
 
     isEqual(other: UserSet): boolean {
-        return (
-            this.object.isEqual(other.object) &&
-            this.relationName === other.relationName
-        );
+        return this.object.isEqual(other.object) && this.relationName === other.relationName;
     }
 
     toString(): string {
@@ -99,12 +96,7 @@ export function isObjShape(o: JsonObject): o is {
     type: Type;
     identifier: ObjectId;
 } {
-    return (
-        "type" in o &&
-        typeof o.type === "string" &&
-        "identifier" in o &&
-        typeof o.identifier === "string"
-    );
+    return "type" in o && typeof o.type === "string" && "identifier" in o && typeof o.identifier === "string";
 }
 
 /**
@@ -114,12 +106,7 @@ export function isUserSetShape(o: JsonObject): o is {
     object: Obj;
     relationName: RelationName;
 } {
-    return (
-        "object" in o &&
-        o.object instanceof Obj &&
-        "relationName" in o &&
-        typeof o.relationName === "string"
-    );
+    return "object" in o && o.object instanceof Obj && "relationName" in o && typeof o.relationName === "string";
 }
 
 /**

@@ -17,9 +17,7 @@ export async function serializeGraph(graph: Graph): Promise<void> {
     //Gets current time and time of last backup
     const now = moment().format(fmt);
     const lastBackup = (
-        await fs
-            .readFile("./lastBackupTime.txt", { encoding: "utf-8" })
-            .catch(() => "1970-06-07T00:00:00")
+        await fs.readFile("./lastBackupTime.txt", { encoding: "utf-8" }).catch(() => "1970-06-07T00:00:00")
     ).trim();
 
     //Compare if at least one hour since last backup - if so create new backup
