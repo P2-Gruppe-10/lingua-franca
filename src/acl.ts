@@ -24,7 +24,7 @@ export class Obj {
 
 export type RelationName = string;
 /**
- * Represents a set of users that all share an relation to an object
+ * Represents a set of users that all share a relation to an object
  */
 export class UserSet {
     object: Obj;
@@ -51,11 +51,11 @@ export type UserId = number;
 export type Subject = UserId | UserSet;
 
 export function subjectsAreEqual(a: Subject, b: Subject): boolean {
-    if (typeof a === "number") {
-        return a === b;
-    }
+    if (typeof a !== typeof b) return false;
 
-    return a.isEqual(b as UserSet);
+    if (typeof a === "number") return a === b;
+
+    return a.isEqual(b as UserSet); // Typescript does not know b is UserSet
 }
 
 /**

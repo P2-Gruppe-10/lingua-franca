@@ -10,16 +10,16 @@ import {
     type JsonObject,
 } from "./acl.ts";
 
-export const TOMBSTONE = "..."; // we use this to let a UserSet represent just an object. used by typeconfigs to cross-reference different types
+export const SENTINEL = "..."; // we use this to let a UserSet represent just an object. used by typeconfigs to cross-reference different types
 
 export type Vertex = Obj | UserId;
 
 function verticesAreEqual(a: Vertex, b: Vertex): boolean {
-    if (typeof a === "number") {
-        return a === b;
-    }
+    if (typeof a !== typeof b) return false;
 
-    return a.isEqual(b as Obj);
+    if (typeof a === "number") return a === b;
+
+    return a.isEqual(b as Obj); // Typescript does not know b is Obj
 }
 
 /**
@@ -78,14 +78,14 @@ export default class Graph {
     }
 
     getRelationsFrom(vertex: Vertex): Relation[] {
-        if (vertex instanceof Obj) {
-            return this.edges.filter(
-                (edge) =>
-                    edge.subject instanceof UserSet &&
-                    vertex.isEqual(edge.subject.object)
-            );
-        }
-        return [];
+        return this.edges.filter((edge) => {
+            // Convert Subject to Vertex type
+            const fromObject =
+                edge.subject instanceof UserSet
+                    ? edge.subject.object
+                    : edge.subject;
+            return verticesAreEqual(fromObject, vertex);
+        });
     }
 
     /**
@@ -182,33 +182,6 @@ export default class Graph {
         }
 
         return graph;
-    }
-
-    /**
-     * Given a Subject, return a list of all UserIds which match it.
-     * A Subject can either be a UserId, in which case that UserId is returned.
-     * Or it can be a UserSet, which match multiple UserIds.
-     */
-    resolveSubjects(subject: Subject): Set<UserId> {
-        if (typeof subject === "number") return new Set([subject]);
-
-        // We know the subject is a userset
-        const userset = subject;
-
-        if (userset.relationName === TOMBSTONE) {
-            return new Set(); // we skip the tombstones in userset resolution because they don't actually point to any UserIds
-        }
-
-        // First, get all relations pointing to the object
-        const users = this.getRelationsTo(userset.object)
-            // Next, only take the relations which have the correct name
-            .filter((rel) => rel.name === userset.relationName)
-            // Resolve the subjects for each of the relations found (kind of like a for loop)
-            .map((rel) => this.resolveSubjects(rel.subject))
-            // Lastly, since `resolveSubjects` returns a set of users, merge them into 1 set
-            .reduce((users, resolved) => users.union(resolved), new Set());
-
-        return users;
     }
 
     DFS(target: UserId, subject: Subject): boolean {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
-import Graph, { TOMBSTONE } from "../src/graph.ts";
+import Graph, { SENTINEL } from "../src/graph.ts";
 import Typeconfig from "../src/typeconfig.ts";
 import AuthZ from "../src/authz.ts";
 
@@ -146,7 +146,7 @@ describe("AuthZ", () => {
                     new Relation(
                         docObj,
                         "parent",
-                        new UserSet(folderObj, TOMBSTONE)
+                        new UserSet(folderObj, SENTINEL)
                     ),
                     new Relation(folderObj, "viewer", userId),
                 ]
@@ -187,7 +187,7 @@ describe("AuthZ", () => {
                     new Relation(
                         docObj,
                         "parent",
-                        new UserSet(folderObj, TOMBSTONE)
+                        new UserSet(folderObj, SENTINEL)
                     ),
                     new Relation(otherFolderObj, "viewer", userId),
                 ]
@@ -249,7 +249,7 @@ describe("AuthZ", () => {
                     new Relation(
                         docObj,
                         "parent",
-                        new UserSet(folderObj, TOMBSTONE)
+                        new UserSet(folderObj, SENTINEL)
                     ),
                     new Relation(folderObj, "viewer", userId),
                 ]

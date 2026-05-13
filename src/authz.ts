@@ -1,6 +1,6 @@
 import type { PathLike } from "node:fs";
 import { UserSet, Obj, type Subject, Relation } from "./acl.ts";
-import Graph, { TOMBSTONE, type Vertex } from "./graph.ts";
+import Graph, { SENTINEL, type Vertex } from "./graph.ts";
 import Typeconfig, { typeconfigsFromDir } from "./typeconfig.ts";
 
 type ValidationError =
@@ -95,7 +95,7 @@ export default class AuthZ {
             .filter(
                 (edge) =>
                     edge.subject instanceof UserSet &&
-                    edge.subject.relationName === TOMBSTONE
+                    edge.subject.relationName === SENTINEL
             )
             .map((edge) => (edge.subject as UserSet).object);
     }
