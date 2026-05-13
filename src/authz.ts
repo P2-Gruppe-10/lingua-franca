@@ -109,6 +109,7 @@ export default class AuthZ {
         const visit = `${object.toString()}#${relation}`;
         if (visited.has(visit)) return false;
         visited.add(visit);
+
         const typeconfig = this.typeconfigs.get(object.type);
         if (!typeconfig) return false;
 

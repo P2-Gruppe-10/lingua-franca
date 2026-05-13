@@ -257,7 +257,7 @@ app.put("/objects", (req, res) => {
     const modificationResult = authz.modifyObject(orginal, modified);
     if (modificationResult === null) {
         res.status(409).json({
-            error: "Could not find the object to modify",
+            error: "Could not find the object to modify, or resulting object already exists",
         });
         return;
     }

@@ -299,6 +299,10 @@ export default class Graph {
     }
 
     modifyObject(orginal: Obj, modified: Obj): boolean {
+        // making sure the result of the modification doesn't already exist in vertices because we don't want duplicates
+        if (this.vertices.some((v) => verticesAreEqual(v, modified)))
+            return false;
+
         const vertex = this.vertices.find((vertex) =>
             verticesAreEqual(vertex, orginal)
         );
