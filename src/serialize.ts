@@ -1,5 +1,5 @@
 import { promises as fs } from "node:fs";
-import Graph, { isGraphShape } from "./graph.ts";
+import Graph from "./graph.ts";
 import moment from "moment";
 
 const fmt = "YYYY-MM-DDTHH:mm:ss";
