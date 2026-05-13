@@ -3,17 +3,42 @@ import type { PathLike } from "node:fs";
 import path from "node:path";
 import { TypeconfigError } from "./error.ts";
 
+/**
+ * Syntax in .tc file: `give <foo> if relation has subRelation`
+ */
 export interface RewriteRule {
     relation: string; // must be a valid relation on this type
     subRelation: string; // relation to check on the referenced object
 }
 
-// userset terms are either computed usersets or tuple-to-usersets (so a single relation or a relation plus a sub-relation on a different object)
+/**
+ * Userset terms are either computed usersets or tuple-to-usersets.
+ * if type is string then the syntax is:         `give <foo> if string`,
+ * and if the type is RewriteRule, the syntax is: `give <foo> if relation has subRelation`.
+ */
 export type UsersetTerm = string | RewriteRule;
-// userset rewrites are unions of userset terms, so the 1 or more lines under a relation that start with "give"
+/**
+ * Userset rewrites are unions of userset terms, so the 1 or more lines that start with `give <foo>`
+ */
 export type UsersetRewrite = Set<UsersetTerm>;
+/**
+ * Maps a relation name, for example "viewer", to a UsersetRewrite.
+ * I.e. in the typeconfig: `give viewer if editor`,
+ * the key would be `"viewer"` and the value would be `"editor"`.
+ */
 export type UsersetRewriteMap = Map<string, UsersetRewrite>;
+/**
+* Describes a set of relations which grant a permission.
+* Typeconfig syntax is: `permission <foo> = viewer + department:staff`,
+* here a subject must have 'viewer' relation, or 'staff' relation to object with 'department' relation
+* to get the `<foo>` permission.
+*/
 export type PermissionGrants = Set<string | RewriteRule>;
+/**
+* Maps a permission name to a PermissionGrants.
+* The key is the name of the permission (see `<foo>` from `PermissionGrants` desc.),
+* and the value is the set of required relations (see `PermissionGrants`).
+*/
 export type PermissionMap = Map<string, PermissionGrants>;
 
 export interface TypeconfigData {
