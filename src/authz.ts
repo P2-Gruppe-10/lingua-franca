@@ -179,28 +179,26 @@ export default class AuthZ {
     }
 
     addEdge(obj: Obj, name: string, subject: Subject): ValidationError[] {
-        const candidate = this.graph.clone();
-        candidate.addEdge(obj, name, subject);
-        const errors = this.validate(candidate);
-        if (errors.length === 0) this.graph = candidate;
+        this.graph.addEdge(obj, name, subject);
+        const errors = this.validate();
+        if (errors.length > 0)
+            this.graph.deleteEdge(new Relation(obj, name, subject));
         return errors;
     }
 
     addVertex(vertex: Vertex): ValidationError[] | null {
-        const candidate = this.graph.clone();
-        const applied = candidate.addVertex(vertex);
+        const applied = this.graph.addVertex(vertex);
         if (!applied) return null;
-        const errors = this.validate(candidate);
-        if (errors.length === 0) this.graph = candidate;
+        const errors = this.validate();
+        if (errors.length > 0) this.graph.deleteVertex(vertex);
         return errors;
     }
 
     modifyObject(original: Obj, modified: Obj): ValidationError[] | null {
-        const candidate = this.graph.clone();
-        const applied = candidate.modifyObject(original, modified);
+        const applied = this.graph.modifyObject(original, modified);
         if (!applied) return null;
-        const errors = this.validate(candidate);
-        if (errors.length === 0) this.graph = candidate;
+        const errors = this.validate();
+        if (errors.length > 0) this.graph.modifyObject(modified, original);
         return errors;
     }
 
