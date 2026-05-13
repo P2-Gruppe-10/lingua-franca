@@ -10,7 +10,7 @@ const fmt = "YYYY-MM-DDTHH:mm:ss";
  *
  * If more than 1 hour since last backup a new one is created
  */
-export async function serializeConfig(graph: Graph): Promise<void> {
+export async function serializeGraph(graph: Graph): Promise<void> {
     //Converts graph to JSON string and assigns it to stringifiedGraph
     const stringifiedGraph = graph.stringify();
 
@@ -36,7 +36,7 @@ export async function serializeConfig(graph: Graph): Promise<void> {
     }
 
     //Update config file with newest version of graph
-    await fs.writeFile("./config.json", stringifiedGraph);
+    await fs.writeFile("./graph.json", stringifiedGraph);
 }
 
 /**
@@ -44,14 +44,9 @@ export async function serializeConfig(graph: Graph): Promise<void> {
  *
  * @throws {Error} if config.json did not create a valid
  */
-export async function deserializeConfig(): Promise<Graph> {
-    //Reads config.json
-    const config = await fs.readFile("./config.json");
-
-    //Converts config.json contents to Graph and returns this
-    const graph = Graph.fromJSON(config.toString());
-
-    return graph;
+export async function deserializeGraph(): Promise<Graph> {
+    const config = await fs.readFile("./graph.json");
+    return Graph.fromJSON(config.toString());
 }
 
 /**
@@ -62,16 +57,16 @@ export async function deserializeConfig(): Promise<Graph> {
 export async function restoreFromBackup(): Promise<Graph> {
     // Creates array of backup file names
     const backupfiles = await fs.readdir("/backup/");
-    backupfiles.sort();
+    backupfiles.sort().reverse();
 
-    for (const filename of backupfiles.reverse()) {
+    for (const filename of backupfiles) {
         // Attempts to read current backup file, create and return Graph
         try {
-            const config = await fs.readFile("./backup/" + filename);
-            const graph = Graph.fromJSON(config.toString());
-            return graph;
+            const config = await fs.readFile(`./backup/${filename}`, {
+                encoding: "utf-8",
+            });
+            return Graph.fromJSON(config);
         } catch {
-            // If fail try next
             continue;
         }
     }

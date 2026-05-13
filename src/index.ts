@@ -1,7 +1,7 @@
 import express from "express";
 import { z } from "zod";
 import { Obj, Relation, UserSet, type Subject, type UserId } from "./acl.ts";
-import { deserializeConfig, serializeConfig } from "./serialize.ts";
+import { deserializeGraph, serializeGraph } from "./serialize.ts";
 import AuthZ from "./authz.ts";
 
 process.title = "lingua";
@@ -9,13 +9,13 @@ const app = express();
 const port = 3000;
 app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
 
-const graph = await deserializeConfig();
+const graph = await deserializeGraph();
 const authz = await AuthZ.withDir(graph, "./schemas/");
 authz.validateWithWarnings();
 
 // Save the graph every 10 seconds
 setInterval(() => {
-    serializeConfig(graph).catch((err: unknown) => {
+    serializeGraph(graph).catch((err: unknown) => {
         console.warn("Failed to serialize graph:", err);
     });
 }, 10000);

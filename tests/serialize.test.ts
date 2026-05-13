@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
 import Graph, { type Vertex } from "../src/graph.ts";
-import { serializeConfig, deserializeConfig } from "../src/serialize.ts";
+import { serializeGraph, deserializeGraph } from "../src/serialize.ts";
 
 describe("Serialization", { timeout: 1000 }, () => {
     it("should serialize a simple graph", async () => {
@@ -16,7 +16,7 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         const graph = new Graph(vertices, edges);
 
-        await serializeConfig(graph);
+        await serializeGraph(graph);
 
         const read = await fs.readFile("./config.json");
 
@@ -66,9 +66,9 @@ describe("Serialization", { timeout: 1000 }, () => {
     it("should serialize the graph", async () => {
         const graph = new Graph(vertices, edges);
 
-        await serializeConfig(graph);
+        await serializeGraph(graph);
 
-        const deserializedGraph = await deserializeConfig();
+        const deserializedGraph = await deserializeGraph();
 
         expect(deserializedGraph).toStrictEqual(graph);
     });
