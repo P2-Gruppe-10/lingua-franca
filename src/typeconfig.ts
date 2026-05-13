@@ -28,17 +28,17 @@ export type UsersetRewrite = Set<UsersetTerm>;
  */
 export type UsersetRewriteMap = Map<string, UsersetRewrite>;
 /**
-* Describes a set of relations which grant a permission.
-* Typeconfig syntax is: `permission <foo> = viewer + department:staff`,
-* here a subject must have 'viewer' relation, or 'staff' relation to object with 'department' relation
-* to get the `<foo>` permission.
-*/
+ * Describes a set of relations which grant a permission.
+ * Typeconfig syntax is: `permission <foo> = viewer + department:staff`,
+ * here a subject must have 'viewer' relation, or 'staff' relation to object with 'department' relation
+ * to get the `<foo>` permission.
+ */
 export type PermissionGrants = Set<string | RewriteRule>;
 /**
-* Maps a permission name to a PermissionGrants.
-* The key is the name of the permission (see `<foo>` from `PermissionGrants` desc.),
-* and the value is the set of required relations (see `PermissionGrants`).
-*/
+ * Maps a permission name to a PermissionGrants.
+ * The key is the name of the permission (see `<foo>` from `PermissionGrants` desc.),
+ * and the value is the set of required relations (see `PermissionGrants`).
+ */
 export type PermissionMap = Map<string, PermissionGrants>;
 
 export interface TypeconfigData {
