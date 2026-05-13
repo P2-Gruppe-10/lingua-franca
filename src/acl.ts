@@ -55,7 +55,7 @@ export function subjectsAreEqual(a: Subject, b: Subject): boolean {
 
     if (typeof a === "number") return a === b;
 
-    return a.isEqual(b as UserSet); // Typescript does not know b is UserSet
+    return a.isEqual(b as UserSet); // typescript does not know b is UserSet
 }
 
 /**
@@ -80,7 +80,7 @@ export class Relation {
         );
     }
 
-    // Same serialization style as the Zanzibar paper https://authzed.com/zanzibar
+    // same serialization style as the Zanzibar paper https://authzed.com/zanzibar
     toString(): string {
         return `${this.object.toString()}#${this.name}@${this.subject.toString()}`;
     }
