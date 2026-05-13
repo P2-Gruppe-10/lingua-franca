@@ -245,14 +245,8 @@ app.put("/objects", (req, res) => {
         return;
     }
 
-    const orginal = new Obj(
-        result.data.original.type,
-        result.data.original.identifier
-    );
-    const modified = new Obj(
-        result.data.modified.type,
-        result.data.modified.identifier
-    );
+    const orginal = new Obj(result.data.original.type, result.data.original.identifier);
+    const modified = new Obj(result.data.modified.type, result.data.modified.identifier);
 
     const modificationResult = authz.modifyObject(orginal, modified);
     if (modificationResult === null) {
@@ -271,9 +265,7 @@ app.put("/objects", (req, res) => {
 
 //Add subject to graph
 app.post("/subjects", (req, res) => {
-    const result = z
-        .object({ userId: z.coerce.number().min(0) })
-        .safeParse(req.body);
+    const result = z.object({ userId: z.coerce.number().min(0) }).safeParse(req.body);
 
     if (!result.success) {
         res.status(400)
@@ -299,9 +291,7 @@ app.post("/subjects", (req, res) => {
 
 //Delete subject from graph
 app.delete("/subjects", (req, res) => {
-    const result = z
-        .object({ userId: z.coerce.number().min(0) })
-        .safeParse(req.query);
+    const result = z.object({ userId: z.coerce.number().min(0) }).safeParse(req.query);
 
     if (!result.success) {
         res.status(400)
@@ -326,5 +316,5 @@ app.delete("/subjects", (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port.toString()}`);
+    console.log(`Lingua Franca listening on port ${port.toString()}`);
 });
