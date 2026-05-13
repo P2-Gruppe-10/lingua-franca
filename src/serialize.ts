@@ -1,17 +1,19 @@
 import { promises as fs } from "node:fs";
-import Graph from "./graph.ts";
+import Graph, { isGraphShape } from "./graph.ts";
 import moment from "moment";
+
+const fmt = "YYYY-MM-DDTHH:mm:ss";
 
 export async function serializeConfig(graph: Graph): Promise<void> {
     //Converts graph to JSON string and assigns it to stringifiedGraph
     const stringifiedGraph = graph.stringify();
 
     //Gets current time and time of last backup
-    const now = moment().format("YYYY-MM-DDTHH:mm:ss");
+    const now = moment().format(fmt);
     const lastBackup = (
         await fs
             .readFile("./lastBackupTime.txt", { encoding: "utf-8" })
-            .catch(() => "1970-01-01T00:00:00")
+            .catch(() => "1970-06-07T00:00:00")
     ).trim();
 
     //Compare if at least one hour since last backup - if so create new backup
@@ -38,7 +40,23 @@ export async function deserializeConfig(): Promise<Graph> {
     //Converts config.json contents to Graph and returns this
     const graph = Graph.fromJSON(config.toString());
 
-    Object.setPrototypeOf(graph, Graph.prototype);
-
     return graph;
+}
+
+export async function restoreFromBackup(): Promise<Graph> {
+    const backupfiles = await fs.readdir("/backup/");
+
+    backupfiles.sort();
+
+    for (const filename of backupfiles) {
+        try {
+            const config = await fs.readFile("./backup/" + filename);
+
+            const graph = Graph.fromJSON(config.toString());
+
+            return graph;
+        } catch {
+            continue;
+        }
+    }
 }
