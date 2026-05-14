@@ -16,7 +16,7 @@ describe("Serialization", { timeout: 1000 }, () => {
 
         await serializeGraph(graph);
 
-        const read = await fs.readFile("./config.json");
+        const read = await fs.readFile("./graph.json");
 
         expect(read.toString()).toStrictEqual(
             '{"vertices":[{"type":"EHR","identifier":"mortenEHR"},{"type":"group","identifier":"læge"}],"edges":[{"object":{"type":"EHR","identifier":"mortenEHR"},"name":"viewer","subject":{"object":{"type":"group","identifier":"læge"},"relationName":"member"}}]}'
