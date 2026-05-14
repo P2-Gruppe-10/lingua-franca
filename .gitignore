@@ -143,4 +143,6 @@ vite.config.ts.timestamp-*
 .vite/
 
 # lingua franca
-config.json
+graph.json
+backup/
+lastBackupTime.txt
