@@ -1,7 +1,6 @@
-import type { PathLike } from "node:fs";
 import { UserSet, Obj, type Subject, Relation } from "./acl.ts";
 import Graph, { SENTINEL, type Vertex } from "./graph.ts";
-import Typeconfig, { typeconfigsFromDir } from "./typeconfig.ts";
+import Typeconfig from "./typeconfig.ts";
 
 type ValidationError =
     | { kind: "missing_typeconfig"; type: string }
@@ -17,18 +16,6 @@ export default class AuthZ {
     constructor(graph: Graph, typeconfigs: Map<string, Typeconfig>) {
         this.graph = graph;
         this.typeconfigs = typeconfigs;
-    }
-
-    static async withDir(graph: Graph, dir: PathLike) {
-        const typeconfigs = await typeconfigsFromDir(dir);
-
-        // map each typeconfig to its type
-        const typeconfigMap = new Map<string, Typeconfig>();
-        typeconfigs.forEach((typeconfig) => {
-            typeconfigMap.set(typeconfig.type, typeconfig);
-        });
-
-        return new AuthZ(graph, typeconfigMap);
     }
 
     /**

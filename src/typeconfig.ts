@@ -252,9 +252,23 @@ export default class Typeconfig implements TypeconfigData {
     }
 }
 
+/**
+ * Takes a directory and loads every .tc file, returning a list of typeconfigs.
+ * */
 export const typeconfigsFromDir = async (dir: PathLike): Promise<Typeconfig[]> => {
     const entries = (await readdir(dir, { withFileTypes: true })).filter(
         (dirent) => dirent.isFile() && dirent.name.endsWith(".tc")
     ); // looking at the entries in some dir and taking only .tc files
     return await Promise.all(entries.map((entry) => Typeconfig.fromFile(path.join(entry.parentPath, entry.name)))); // map each of those files to a parsed Typeconfig
+};
+
+/**
+ * Takes a list of typeconfigs and maps each type to its config.
+ */
+export const mapTypeconfigs = (typeconfigs: Typeconfig[]) => {
+    const typeconfigMap = new Map<string, Typeconfig>();
+    for (const tc of typeconfigs) {
+        typeconfigMap.set(tc.type, tc);
+    }
+    return typeconfigMap;
 };
