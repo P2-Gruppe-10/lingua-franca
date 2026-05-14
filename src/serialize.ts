@@ -6,45 +6,46 @@ import moment from "moment";
 const fmt = "YYYY-MM-DDTHH:mm:ss";
 
 /**
- * Updates config.json with newest version of Graph
- *
- * If more than 1 hour since last backup a new one is created
- */
+ * Writes a graph to ./graph.json. As a side effect, also writes to ./backups/ if an hour has passed since last time
+ * this was called.
+ * */
 export async function serializeGraph(graph: Graph): Promise<void> {
-    //Converts graph to JSON string and assigns it to stringifiedGraph
+    // main effect: write the stringified graph to the default filepath
     const stringifiedGraph = graph.stringify();
+    await fs.writeFile("./graph.json", stringifiedGraph);
 
-    //Gets current time and time of last backup
+    // side effect: make a backup if 1 hour since last time
+    await makeBackup(stringifiedGraph, 1, "hours");
+}
+
+/**
+ * Takes a string and writes it to a new file in ./backups, named the current time, if it has been [amount] [unit] since last backup. Example of [amount] [unit] could be 10 minutes.
+ * */
+async function makeBackup(stringifiedGraph: string, amount: moment.DurationInputArg1, unit: moment.DurationInputArg2) {
+    // get current time and time of last backup
     const now = moment().format(fmt);
     const lastBackup = (
         await fs.readFile("./lastBackupTime.txt", { encoding: "utf-8" }).catch(() => "1970-06-07T00:00:00")
     ).trim();
 
-    //Compare if at least one hour since last backup - if so create new backup
-    if (moment(now).isAfter(moment(lastBackup).add(1, "hours"))) {
+    // if at least one hour has passed since last backup, create a new backup
+    if (moment(now).isAfter(moment(lastBackup).add(amount, unit))) {
         await fs.mkdir("./backup/", { recursive: true });
-        //Create filepath string for new backup
-        const backupFileName = "./backup/" + now + ".json";
 
-        //Create new backup file with current graph with name from backupFileName
-        await fs.writeFile(backupFileName, stringifiedGraph);
+        // create new backup file with current graph, name it the current time
+        await fs.writeFile(`./backup/${now}.json`, stringifiedGraph);
 
-        //Update time of last backup to now
+        // update time of last backup to now
         await fs.writeFile("./lastBackupTime.txt", now);
     }
-
-    //Update config file with newest version of graph
-    await fs.writeFile("./graph.json", stringifiedGraph);
 }
 
-/**
- * Creates Graph from newest config.json file
- *
- * @throws {Error} if config.json did not create a valid
- */
+/*
+ * Reads a graph from ./graph.json and parses it into a Graph object.
+ * */
 export async function deserializeGraph(): Promise<Graph> {
-    const config = await fs.readFile("./graph.json");
-    return Graph.fromJSON(config.toString());
+    const graph = await fs.readFile("./graph.json", { encoding: "utf-8" });
+    return Graph.fromJSON(graph);
 }
 
 /**
