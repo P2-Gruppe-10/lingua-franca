@@ -44,7 +44,7 @@ async function makeBackup(stringifiedGraph: string, amount: moment.DurationInput
  * Reads a graph from ./graph.json and parses it into a Graph object.
  * */
 export async function deserializeGraph(): Promise<Graph> {
-    const graph = await fs.readFile("./graph.json", { encoding: "utf-8" });
+    const graph = await fs.readFile("./graph.json", { encoding: "utf-8" }).catch(() => `{"vertices": [], "edges": []}`);
     return Graph.fromJSON(graph);
 }
 
