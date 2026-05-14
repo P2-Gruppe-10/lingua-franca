@@ -25,6 +25,9 @@ if ! kill -0 $server_pid 2>/dev/null; then
     exit 1
 fi
 echo started node server with pid $server_pid
+echo
+echo Running tests...
+echo "---"
 
 RED="\033[0;31m"
 GREEN="\033[0;32m"
@@ -39,10 +42,11 @@ number_tests=0
 cleanup() {
     kill $server_pid 
     rm -rf "$target_dir"
+    echo "---"
     echo "$number_tests tests completed"
-    echo -e "${GREEN}$number_succeeded tests succeeded${RESET}"
-    echo -e "${YELLOW}$number_expected_failed tests failed expectedly${RESET}"
-    echo -e "${RED}$number_failed tests failed${RESET}"
+    echo -e "${GREEN}✓ $number_succeeded passed${RESET}"
+    echo -e "${YELLOW}~ $number_expected_failed expected failures${RESET}"
+    echo -e "${RED}✗ $number_failed failed${RESET}"
 }
 
 # automatically closes node server on ctrl+c
@@ -53,26 +57,28 @@ current_test_name=""
 
 runtest() {
     current_test_name=$1
-    echo running test: \"$1\"
+    printf "\033[1m$1\033[0m... "
 }
 
 
 endtest() {
     if [[ $curl_exit != 0 ]]; then
-        echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
+        echo -e "${RED}✗${RESET}"
         number_failed=$(($number_failed + 1))
     else
         number_succeeded=$(($number_succeeded + 1))
-        echo -e "${GREEN}succeeded test: \"$current_test_name\"${RESET}"
+        echo -e "${GREEN}✓${RESET}"
     fi
     number_tests=$(($number_tests + 1))
 
-    if [ -n "$curl_body" ] && jq empty >/dev/null 2>&1 <<<"$curl_body"; then 
-        echo "json response:"
-        jq 2>/dev/null <<<"$curl_body"
-    else
-        echo "text response:"
-        echo "$curl_body"
+    if [[ $curl_exit != 0 ]]; then
+        if [ -n "$curl_body" ] && jq empty >/dev/null 2>&1 <<<"$curl_body"; then 
+            echo "json response:"
+            jq 2>/dev/null <<<"$curl_body"
+        else
+            echo "text response:"
+            echo "$curl_body"
+        fi
     fi
 
     curl_body=""
@@ -87,15 +93,13 @@ endtest-if-failed() {
 endtest-expect-fail() {
     # was the status code not a success code, or the last command failed
     if [[ "$1" != "2"* ]] || [[ $curl_exit != 0 ]]; then
-        echo -e "${YELLOW}failed test expectedly: \"$current_test_name\"${RESET}"
+        echo -e "${YELLOW}✓${RESET}"
         number_expected_failed=$(($number_expected_failed + 1))
     else
         number_failed=$(($number_failed + 1))
-        echo -e "${RED}Failed test unexpectedly: \"$current_test_name\"${RESET}"
+        echo -e "${RED}✗${RESET}"
     fi
     number_tests=$(($number_tests + 1))
-
-    echo
 }
 
 do-curl() {
@@ -136,7 +140,7 @@ endtest-expect-fail "$curl_body"
 # test for delete subject
 runtest "delete subject"
 
-do-curl localhost:3000/subjects?userId=12 \
+do-curl "localhost:3000/subjects?userId=$user" \
         -X DELETE \
         -H "Accept: application/json" \
         --max-time 5 \
@@ -260,3 +264,74 @@ do-curl "localhost:3000/relations?objectType=EHR&objectIdentifier=Bobs%20leg%20s
 
 endtest
 
+runtest "authorization"
+
+post_body=$(cat <<END
+    {
+        "object": {
+            "type": "EHR",
+            "identifier": "Bobs leg surgery"
+        },
+        "name": "viewer",
+        "subject": $user
+    }
+END
+)
+
+do-curl localhost:3000/relations \
+        -d "$post_body" \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+        --max-time 5 \
+        --fail-with-body \
+        --silent
+
+endtest-if-failed 
+
+do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permission=can_view&userId=$user" \
+        -H "Accept: application/json" \
+        --max-time 5 \
+        --fail-with-body \
+        --silent
+
+endtest
+
+runtest "authorizing on an object that doesn't exist"
+
+do-curl "localhost:3000/authorize?type=EHR&objectId=fortnitepeter2009&permission=can_view&userId=$user" \
+        -H "Accept: application/json" \
+        --max-time 5 \
+        --fail-with-body \
+        --silent
+
+endtest-expect-fail "$curl_body"
+
+runtest "authorizing on a type that doesn't exist"
+
+do-curl "localhost:3000/authorize?type=poop&objectId=Bobs%20leg%20surgery&permission=can_view&userId=$user" \
+        -H "Accept: application/json" \
+        --max-time 5 \
+        --fail-with-body \
+        --silent
+
+endtest-expect-fail "$curl_body"
+
+runtest "authorizing a user that doesn't exist"
+
+do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permission=can_view&userId=999" \
+        -H "Accept: application/json" \
+        --max-time 5 \
+        --fail-with-body \
+        --silent
+
+endtest-expect-fail "$curl_body"
+
+runtest "authorizing for a permission that doesn't exist"
+
+do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permission=can_play_fortnite&userId=$user" \
+        -H "Accept: application/json" \
+        --max-time 5 \
+        --fail-with-body \
+        --silent
+
+endtest-expect-fail "$curl_body"
