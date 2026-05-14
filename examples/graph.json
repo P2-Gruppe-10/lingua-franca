@@ -1,5 +1,23 @@
 {
-  "vertices": [],
+  "vertices": [
+    {
+      "type": "EHR",
+      "identifier": "morten"
+    },
+    {
+      "type": "group",
+      "identifier": "doctor"
+    },
+    {
+      "type": "group",
+      "identifier": "chief"
+    },
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
   "edges": [
     {
       "object": {
@@ -34,7 +52,7 @@
         "type": "group",
         "identifier": "chief"
       },
-      "name": "admine",
+      "name": "admin",
       "subject": 0
     },
     {
@@ -50,7 +68,7 @@
         "type": "group",
         "identifier": "doctor"
       },
-      "name": "memberooski",
+      "name": "member",
       "subject": 2
     },
     {
@@ -71,7 +89,7 @@
     },
     {
       "object": {
-        "type": "zoop",
+        "type": "group",
         "identifier": "chief"
       },
       "name": "admin",

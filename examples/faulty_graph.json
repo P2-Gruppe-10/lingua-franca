@@ -1,5 +1,23 @@
 {
-  "vertices": [],
+  "vertices": [
+    {
+      "type": "EHR",
+      "identifier": "morten"
+    },
+    {
+      "type": "groupe",
+      "identifier": "doctor"
+    },
+    {
+      "type": "group",
+      "identifier": "chief"
+    },
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
   "edges": [
     {
       "object": {
@@ -9,7 +27,7 @@
       "name": "viewer",
       "subject": {
         "object": {
-          "type": "group",
+          "type": "groupe",
           "identifier": "doctor"
         },
         "relationName": "member"
@@ -17,10 +35,10 @@
     },
     {
       "object": {
-        "type": "group",
+        "type": "groupe",
         "identifier": "doctor"
       },
-      "name": "parent",
+      "name": "parenting",
       "subject": {
         "object": {
           "type": "group",
@@ -47,7 +65,7 @@
     },
     {
       "object": {
-        "type": "group",
+        "type": "groupe",
         "identifier": "doctor"
       },
       "name": "member",
@@ -58,7 +76,7 @@
         "type": "EHR",
         "identifier": "morten"
       },
-      "name": "viewer",
+      "name": "viewererer",
       "subject": 1
     },
     {
@@ -74,7 +92,7 @@
         "type": "group",
         "identifier": "chief"
       },
-      "name": "admin",
+      "name": "admine",
       "subject": 4
     }
   ]
