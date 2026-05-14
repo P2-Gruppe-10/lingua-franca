@@ -83,6 +83,28 @@ app.get("/authorize", (req, res) => {
     const { type, objectId, permission, userId } = result.data;
     const object = new Obj(type, objectId);
 
+    // checking for different things that could go wrong
+    const typeconfig = authz.typeconfigs.get(type);
+    if (!typeconfig) {
+        res.status(404).json({ error: "Unknown object type" });
+        return;
+    }
+
+    if (!typeconfig.permissions.has(permission)) {
+        res.status(400).json({ error: "Unknown permission" });
+        return;
+    }
+
+    if (!authz.graph.vertexInGraph(object)) {
+        res.status(404).json({ error: "Object not found" });
+        return;
+    }
+
+    if (!authz.graph.vertexInGraph(userId)) {
+        res.status(404).json({ error: "User not found" });
+        return;
+    }
+
     if (authz.hasPermission(userId, object, permission)) {
         res.status(200).end();
         return;
