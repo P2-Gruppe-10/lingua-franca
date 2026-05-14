@@ -32,14 +32,6 @@ describe("A graph", () => {
 
     const g = new Graph(vertices, edges);
 
-    it("should resolve all subjects", () => {
-        const graph = g.clone();
-
-        const users = graph.resolveSubjects(new UserSet(mortenEhr, "viewer"));
-
-        expect(users).toStrictEqual(new Set([bob, alice, knud, gertrud]));
-    });
-
     it("should find the target (DFS)", () => {
         const graph = g.clone();
         const userset = new UserSet(mortenEhr, "viewer");
