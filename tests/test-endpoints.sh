@@ -47,6 +47,7 @@ cleanup() {
     echo -e "${GREEN}✓ $number_succeeded passed${RESET}"
     echo -e "${YELLOW}~ $number_expected_failed expected failures${RESET}"
     echo -e "${RED}✗ $number_failed failed${RESET}"
+    exit $number_failed
 }
 
 # automatically closes node server on ctrl+c
