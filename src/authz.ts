@@ -74,7 +74,7 @@ export default class AuthZ {
     validateWithWarnings(): ValidationError[] {
         const errors = this.validate();
         if (errors.length > 0) {
-            console.log("\x1b[0;31mWarning:\x1b[0m the following typconfig-graph disparities were found:");
+            console.log("\x1b[0;31mWarning:\x1b[0m the following typeconfig-graph disparities were found:");
             for (const error of errors) {
                 console.log(
                     error.kind === "missing_typeconfig"
@@ -107,7 +107,7 @@ export default class AuthZ {
         const typeconfig = this.typeconfigs.get(object.type);
         if (!typeconfig) return false;
 
-        // first handling direct paths thru usersets present in the graph
+        // first handling direct paths through usersets present in the graph
         if (this.graph.DFS(user, new UserSet(object, relation))) {
             return true;
         }

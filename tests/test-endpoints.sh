@@ -35,7 +35,7 @@ cleanup() {
     echo -e "${RED}$number_failed tests failed${RESET}"
 }
 
-# Automatically closes node server on ctrl+c
+# automatically closes node server on ctrl+c
 trap cleanup EXIT
 
 
@@ -43,7 +43,7 @@ current_test_name=""
 
 runtest() {
     current_test_name=$1
-    echo runnning test: \"$1\"
+    echo running test: \"$1\"
 }
 
 
@@ -75,7 +75,7 @@ endtest-if-failed() {
 }
 
 endtest-expect-fail() {
-    # Was the statuscode not a success code, or the last command fialed
+    # was the status code not a success code, or the last command failed
     if [[ "$1" != "2"* ]] || [[ $? != 0 ]]; then
         echo -e "${YELLOW}failed test expectedly: \"$current_test_name\"${RESET}"
         number_expected_failed=$(($number_expected_failed + 1))
@@ -105,7 +105,7 @@ curl_body=$(
     
 endtest 
 
-# Add existing subject twice
+# add existing subject twice
 runtest "add existing subject again"
 
 curl_body=$(
@@ -117,7 +117,7 @@ curl_body=$(
         --fail-with-body \
         --silent \
         --output /dev/null \
-        --write-out "%{http_code}" # Only get the status code of the result
+        --write-out "%{http_code}" # only get the status code of the result
 )
 
 endtest-expect-fail "$curl_body"
@@ -171,7 +171,7 @@ endtest
 # test for modify object
 runtest "modify object"
 
-# First add bob again (he was deleted earlier)
+# first add bob again (he was deleted earlier)
 curl localhost:3000/objects \
     -d '{
             "type": "EHR",
@@ -183,7 +183,7 @@ curl localhost:3000/objects \
     --fail-with-body \
     --silent
 
-# If adding bob failed for some reason, end the test
+# if adding bob failed for some reason, end the test
 endtest-if-failed
 
 curl_body=$(
@@ -211,7 +211,7 @@ endtest
 # test for add relation
 runtest "add relation"
 
-# Add a subject again
+# add a subject again
 
 curl localhost:3000/subjects \
     -d "{\"userId\": $user}" \

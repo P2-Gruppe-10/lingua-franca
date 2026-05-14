@@ -48,17 +48,17 @@ export async function deserializeGraph(): Promise<Graph> {
 }
 
 /**
- * Creates Graph from newest valid backup file
+ * Creates Graph from newest valid backup file.
  *
- * @throws {Error} if no valid backup can be found
+ * @throws {Error} if no valid backup can be found.
  */
 export async function restoreFromBackup(): Promise<Graph> {
-    // Creates array of backup file names
+    // create an array of backup file names
     const backupfiles = await fs.readdir("/backup/");
     backupfiles.sort().reverse();
 
     for (const filename of backupfiles) {
-        // Attempts to read current backup file, create and return Graph
+        // attempt to read current backup file, create and return Graph
         try {
             const config = await fs.readFile(`./backup/${filename}`, {
                 encoding: "utf-8",

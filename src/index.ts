@@ -3,14 +3,21 @@ import { z } from "zod";
 import { Obj, Relation, UserSet, type Subject, type UserId } from "./acl.ts";
 import { deserializeGraph, serializeGraph } from "./serialize.ts";
 import AuthZ from "./authz.ts";
+import { mapTypeconfigs, typeconfigsFromDir } from "./typeconfig.ts";
 
 process.title = "lingua";
 const app = express();
 const port = 3000;
-app.use(express.json()); // turns out body-parser isnt needed, express has its own json middleware
+app.use(express.json()); // use the default expressjs json middleware (parses incoming JSON strings into objects we can use)
 
+// get our graph and all typeconfigs in ./schemas/
 const graph = await deserializeGraph();
-const authz = await AuthZ.withDir(graph, "./schemas/");
+const typeconfigs = await typeconfigsFromDir("./schemas/");
+
+// instantiate authz system with a map from each type to its config
+const authz = new AuthZ(graph, mapTypeconfigs(typeconfigs));
+
+// validate that the graph and typeconfigs match, print warnings
 authz.validateWithWarnings();
 
 // Save the graph every 10 seconds
@@ -21,14 +28,14 @@ setInterval(() => {
 }, 10000);
 
 const AuthorizeQuerySchema = z.object({
-    objectId: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    objectId: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?objectId=&... would be valid input
     permission: z.string().min(1),
     type: z.string().min(1),
     userId: z.coerce.number().min(0), // we coerce because the input will be something like "1" and we want 1
 });
 
 const ObjectSchema = z.object({
-    type: z.string().min(1), // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    type: z.string().min(1),
     identifier: z.string().min(1),
 });
 
@@ -45,7 +52,7 @@ const UserSetSchema = z.object({
 const SubjectSchema = z.union([UserSetSchema, z.coerce.number()]);
 
 const RelationSchema = z.object({
-    object: ObjectSchema, // .min(1) ensures no empty strings. without it, /authorize?ObjectId=&... would be valid input
+    object: ObjectSchema,
     name: z.string().min(1),
     subject: SubjectSchema,
 });
@@ -57,6 +64,7 @@ const RelationQuerySchema = z.object({
     subject: SubjectSchema,
 });
 
+// takes an object, a user and a permission and returns 200 OK if permission is granted, 403 otherwise
 app.get("/authorize", (req, res) => {
     const result = AuthorizeQuerySchema.safeParse(req.query);
 
@@ -82,6 +90,7 @@ app.get("/authorize", (req, res) => {
     res.status(403).end(); // 401 Unauthorized seems more fitting, but for some reason, it actually means Unauthenticated. Known misnomer. 403 is standard for when the user is actually unauthorized
 });
 
+// add a relation to the graph
 app.post("/relations", (req, res) => {
     const result = RelationSchema.safeParse(req.body);
 
@@ -100,10 +109,11 @@ app.post("/relations", (req, res) => {
     const obj = new Obj(object.type, object.identifier);
 
     let subject: Subject;
-    // subject is UserId
     if (typeof result.data.subject === "number") {
+        // subject is UserId
         subject = result.data.subject;
     } else {
+        // subject is UserSet
         const bodyObj = result.data.subject.object;
         const object = new Obj(bodyObj.type, bodyObj.identifier);
 
@@ -133,7 +143,7 @@ app.post("/relations", (req, res) => {
     res.status(200).end();
 });
 
-// Remove relation from graph
+// remove a relation from the graph
 app.delete("/relations", (req, res) => {
     const result = RelationQuerySchema.safeParse(req.query);
 
@@ -175,7 +185,7 @@ app.delete("/relations", (req, res) => {
     res.status(200).end();
 });
 
-// Add new object to graph
+// add a new object to the graph
 app.post("/objects", (req, res) => {
     const result = ObjectSchema.safeParse(req.body);
 
@@ -205,7 +215,7 @@ app.post("/objects", (req, res) => {
     res.status(200).end();
 });
 
-// Remove object from graph
+// remove an object from the graph
 app.delete("/objects", (req, res) => {
     const result = ObjectSchema.safeParse(req.query);
 
@@ -231,7 +241,7 @@ app.delete("/objects", (req, res) => {
     res.status(200).end();
 });
 
-// Modify existing object
+// modify an existing object in the graph
 app.put("/objects", (req, res) => {
     const result = ModifyObjectSchema.safeParse(req.body);
 
@@ -245,10 +255,10 @@ app.put("/objects", (req, res) => {
         return;
     }
 
-    const orginal = new Obj(result.data.original.type, result.data.original.identifier);
+    const original = new Obj(result.data.original.type, result.data.original.identifier);
     const modified = new Obj(result.data.modified.type, result.data.modified.identifier);
 
-    const modificationResult = authz.modifyObject(orginal, modified);
+    const modificationResult = authz.modifyObject(original, modified);
     if (modificationResult === null) {
         res.status(409).json({
             error: "Could not find the object to modify, or resulting object already exists",
@@ -263,7 +273,7 @@ app.put("/objects", (req, res) => {
     res.status(200).end();
 });
 
-//Add subject to graph
+// add a subject to the graph
 app.post("/subjects", (req, res) => {
     const result = z.object({ userId: z.coerce.number().min(0) }).safeParse(req.body);
 
@@ -289,7 +299,7 @@ app.post("/subjects", (req, res) => {
     res.status(200).end();
 });
 
-//Delete subject from graph
+// delete a subject from the graph
 app.delete("/subjects", (req, res) => {
     const result = z.object({ userId: z.coerce.number().min(0) }).safeParse(req.query);
 
@@ -315,6 +325,7 @@ app.delete("/subjects", (req, res) => {
     res.status(200).end();
 });
 
+// start the server
 app.listen(port, () => {
     console.log(`Lingua Franca listening on port ${port.toString()}`);
 });

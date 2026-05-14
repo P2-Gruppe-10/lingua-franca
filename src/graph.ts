@@ -19,11 +19,11 @@ function verticesAreEqual(a: Vertex, b: Vertex): boolean {
 
     if (typeof a === "number") return a === b;
 
-    return a.isEqual(b as Obj); // Typescript does not know b is Obj
+    return a.isEqual(b as Obj); // typescript does not know b is Obj
 }
 
 /**
- * Tests wether an object is _shaped_ like a `Graph`.
+ * Tests whether an object is _shaped_ like a `Graph`.
  */
 export function isGraphShape(o: JsonObject): o is {
     vertices: Vertex[];
@@ -60,7 +60,7 @@ export default class Graph {
         return this.vertexInGraph(vertex);
     }
 
-    // Methods for printing contents of a graph
+    // methods for printing contents of a graph
     vertexStrings(): string[] {
         return this.vertices.map((vertex) => vertex.toString());
     }
@@ -78,7 +78,7 @@ export default class Graph {
 
     getRelationsFrom(vertex: Vertex): Relation[] {
         return this.edges.filter((edge) => {
-            // Convert Subject to Vertex type
+            // convert Subject to Vertex type
             const fromObject = edge.subject instanceof UserSet ? edge.subject.object : edge.subject;
             return verticesAreEqual(fromObject, vertex);
         });
@@ -120,9 +120,9 @@ export default class Graph {
 
             if (isGraphShape(val)) {
                 const graph = new Graph(val.vertices, val.edges);
-                // make sure all objects in the edges are references to objects in the vertices array.
+                // make sure all objects in the edges are references to objects in the vertices array
                 graph.edges = graph.edges.map((edge) => {
-                    // First find the object in the vertices array which corresponds to the "object" member of the edge
+                    // first, find the object in the vertices array which corresponds to the "object" member of the edge
                     const to: Obj = edge.object;
                     const actualTo = graph.vertices.find((v) => verticesAreEqual(v, to));
                     if (!(actualTo instanceof Obj)) {
@@ -131,7 +131,7 @@ export default class Graph {
 
                     let subject: Subject;
                     if (edge.subject instanceof UserSet) {
-                        // If the "subject" member of the edge is a UserSet, find the object in the UserSet
+                        // if the "subject" member of the edge is a UserSet, find the object in the UserSet
                         const object = edge.subject.object;
                         const actualFrom = graph.vertices.find((v) => verticesAreEqual(v, object));
                         if (!(actualFrom instanceof Obj))
@@ -141,7 +141,7 @@ export default class Graph {
 
                         subject = new UserSet(actualFrom, edge.subject.relationName);
                     } else {
-                        // If the "subject" member of the edge is a UserId, make sure it is defined.
+                        // if the "subject" member of the edge is a UserId, make sure it is defined
                         if (!graph.vertices.includes(edge.subject))
                             throw new Error(
                                 `Edge has user not defined in vertices. UserID: "${edge.subject.toString()}"`
@@ -150,7 +150,7 @@ export default class Graph {
                         subject = edge.subject;
                     }
 
-                    // We now have correct references to objects in the "vertices array"
+                    // we now have correct references to objects in the "vertices array"
                     return new Relation(actualTo, edge.name, subject);
                 });
 
@@ -174,7 +174,7 @@ export default class Graph {
         const visited: Set<Subject> = new Set<Subject>();
 
         while (stack.length > 0) {
-            //Since the stack is not empty, pop can not return undefined
+            // since the stack is not empty, pop can not return undefined
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const node = stack.pop()!;
             if (visited.has(node)) {
@@ -185,12 +185,13 @@ export default class Graph {
 
             if (node === target) return true;
 
-            //If the type is number and it aint the target, run next node.
+            // if our non-target node is not a UserSet, we can't do anything with it, so skip to next iteration
             if (typeof node === "number") continue;
 
             const subjects = this.getRelationsTo(node.object)
-                // Next, only take the relations which have the correct name
+                // only take the relations which have the correct name
                 .filter((rel) => rel.name === node.relationName)
+                // and get their subjects
                 .map((rel) => rel.subject);
 
             stack.push(...subjects);
@@ -247,31 +248,31 @@ export default class Graph {
     }
 
     deleteVertex(vertex: Vertex): boolean {
-        //Find the index of the object in verticies to make sure it exists
+        // find the index of the object in vertices to make sure it exists
         const index = this.vertices.findIndex((v) => verticesAreEqual(v, vertex));
 
-        //If it does not exists return false
+        // if it does not exist, return false
         if (index === -1) return false;
 
-        //Find all the edges point to and from the object
+        // find all the edges pointing to and from the object
         const connectedEdges = [...this.getRelationsTo(vertex), ...this.getRelationsFrom(vertex)];
 
-        //Delete all the edges pointing to and from the object
+        // delete all the edges pointing to and from the object
         for (const edge of connectedEdges) {
             this.deleteEdge(edge);
         }
 
-        //Delete the object
+        // delete the object
         this.vertices.splice(index, 1);
 
         return true;
     }
 
-    modifyObject(orginal: Obj, modified: Obj): boolean {
+    modifyObject(original: Obj, modified: Obj): boolean {
         // making sure the result of the modification doesn't already exist in vertices because we don't want duplicates
         if (this.vertices.some((v) => verticesAreEqual(v, modified))) return false;
 
-        const vertex = this.vertices.find((vertex) => verticesAreEqual(vertex, orginal));
+        const vertex = this.vertices.find((vertex) => verticesAreEqual(vertex, original));
 
         if (!vertex) return false;
 

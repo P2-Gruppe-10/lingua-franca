@@ -88,7 +88,7 @@ export default class Typeconfig implements TypeconfigData {
 
         const file = await readFile(path, { encoding: "utf-8" });
 
-        // Loop over all lines of the file
+        // loop over all lines of the file
         for (const [index, line] of splitFileLines(file).entries()) {
             if (line.trim() === "") continue; // skip empty lines obvs
             const tokens = splitByWhitespace(line); // split into tokens ("words")
@@ -139,8 +139,10 @@ export default class Typeconfig implements TypeconfigData {
         const grantedBy = new Set<string | RewriteRule>();
 
         for (const token of logicTokens) {
+            // skip the plusses because they're just syntax
             if (token === "+") continue;
             if (token.includes(":")) {
+                // if there's a colon in there, we're looking at a rewrite rule, not just another relationName
                 const [relation, subRelation] = token.split(":");
                 if (!relation || !subRelation) {
                     throw new TypeconfigError(`Malformed rewrite rule ${token}.`);
@@ -149,6 +151,7 @@ export default class Typeconfig implements TypeconfigData {
                 grantedBy.add({ relation, subRelation });
                 continue;
             }
+            // otherwise its just a singular relationName on this type, so assert it exists and add it
             Typeconfig.assertRelationExists(token, state);
             grantedBy.add(token);
         }
@@ -157,7 +160,7 @@ export default class Typeconfig implements TypeconfigData {
     }
 
     /**
-     * handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
+     * Handles "give" commands, e.g., give member if parent has member, or give viewer if editor.
      */
     private static handleGive(tokens: string[], state: TypeconfigData) {
         if (tokens[0] !== "give" || tokens[2] !== "if") {
@@ -177,7 +180,7 @@ export default class Typeconfig implements TypeconfigData {
         let term: UsersetTerm;
 
         if (tokens.length === 6) {
-            // If length is 6, then term is a conditional rule
+            // if length is 6, then term is a conditional rule
             if (tokens[4] !== "has") {
                 throw new TypeconfigError(`Malformed give syntax.`);
             }
@@ -195,8 +198,7 @@ export default class Typeconfig implements TypeconfigData {
     }
 
     /**
-     * handles the lines where we are not inside anything
-     * currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
+     * Handles a singular line. Matches first token against the set of available keywords type, relation, give and permission.
      */
     private static handleGlobal(tokens: string[], state: TypeconfigData) {
         const [keyword, value, ...extra] = tokens;

@@ -2,7 +2,7 @@ export type ObjectId = string;
 export type Type = string;
 /**
  * A thing which a subject can have a relation to.
- * Consist of a type and a unique identifier.
+ * Consists of a type and a unique identifier.
  */
 export class Obj {
     type: Type;
@@ -90,7 +90,7 @@ export function isObject(value: unknown): value is JsonObject {
 }
 
 /**
- * Tests wether an object is _shaped_ like an `Obj`.
+ * Tests whether an object is _shaped_ like an `Obj`.
  */
 export function isObjShape(o: JsonObject): o is {
     type: Type;
@@ -100,7 +100,7 @@ export function isObjShape(o: JsonObject): o is {
 }
 
 /**
- * Tests wether an object is _shaped_ like a `UserSet`.
+ * Tests whether an object is _shaped_ like a `UserSet`.
  */
 export function isUserSetShape(o: JsonObject): o is {
     object: Obj;
@@ -110,7 +110,7 @@ export function isUserSetShape(o: JsonObject): o is {
 }
 
 /**
- * Tests wether an object is _shaped_ like a `Relation`.
+ * Tests whether an object is _shaped_ like a `Relation`.
  */
 export function isRelationShape(o: JsonObject): o is {
     object: Obj;
