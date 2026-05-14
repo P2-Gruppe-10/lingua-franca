@@ -39,8 +39,9 @@ permission delete = owner
 
         expect(editorRewrite).toBeDefined();
         expect(viewerRewrite).toBeDefined();
-        expect([...editorRewrite!]).toEqual(["owner"]);
-        expect([...viewerRewrite!]).toEqual(["editor"]);
+        if (!editorRewrite || !viewerRewrite) return;
+        expect([...editorRewrite]).toEqual(["owner"]);
+        expect([...viewerRewrite]).toEqual(["editor"]);
 
         const perms = config.permissions;
         expect(perms.size).toBe(3);
@@ -70,7 +71,8 @@ permission can_view = parent:viewer + viewer
 
         const accessRewrite = config.usersetRewrites.get("access");
         expect(accessRewrite).toBeDefined();
-        expect([...accessRewrite!]).toEqual([{ relation: "parent", subRelation: "viewer" }]);
+        if (!accessRewrite) return;
+        expect([...accessRewrite]).toEqual([{ relation: "parent", subRelation: "viewer" }]);
 
         const canView = config.permissions.get("can_view");
         expect(canView).toBeDefined();
