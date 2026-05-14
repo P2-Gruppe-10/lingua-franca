@@ -5,17 +5,26 @@ if ! which curl; then
     exit 1
 fi   
 
+project_dir="$(pwd)"
+target_dir="/tmp/lingua-franca"
+mkdir -p "$target_dir"
+
+# create a symlink between /tmp/lingua-franca/schemas and ./schemas relative to the project root
+ln -sfn "$project_dir/schemas" "$target_dir/schemas"
+
 # start server
-npm run build
-node . &
+npm run build || { echo "Build failed"; exit 1; }
+cd "$target_dir" || exit 1
+node "$project_dir" &
+
 server_pid=$!
-if [[ $? != 0 ]]; then
-    echo failed to run server, exit code: $?
+sleep 2 # give it time to start up
+# if server_pid still running after 2 seconds we know it didnt die instantly
+if ! kill -0 $server_pid 2>/dev/null; then
+    echo "failed to run server (process died immediately)"
     exit 1
-else
-    sleep 2
-    echo started node server with pid $server_pid
-fi 
+fi
+echo started node server with pid $server_pid
 
 RED="\033[0;31m"
 GREEN="\033[0;32m"
@@ -29,6 +38,7 @@ number_tests=0
 
 cleanup() {
     kill $server_pid 
+    rm -rf "$target_dir"
     echo "$number_tests tests completed"
     echo -e "${GREEN}$number_succeeded tests succeeded${RESET}"
     echo -e "${YELLOW}$number_expected_failed tests failed expectedly${RESET}"
@@ -48,7 +58,7 @@ runtest() {
 
 
 endtest() {
-    if [[ $? != 0 ]]; then
+    if [[ $curl_exit != 0 ]]; then
         echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
         number_failed=$(($number_failed + 1))
     else
@@ -69,14 +79,14 @@ endtest() {
 }
 
 endtest-if-failed() {
-    if [[ $? != 0 ]]; then
+    if [[ $curl_exit != 0 ]]; then
         endtest
     fi
 }
 
 endtest-expect-fail() {
     # was the status code not a success code, or the last command failed
-    if [[ "$1" != "2"* ]] || [[ $? != 0 ]]; then
+    if [[ "$1" != "2"* ]] || [[ $curl_exit != 0 ]]; then
         echo -e "${YELLOW}failed test expectedly: \"$current_test_name\"${RESET}"
         number_expected_failed=$(($number_expected_failed + 1))
     else
@@ -88,28 +98,30 @@ endtest-expect-fail() {
     echo
 }
 
+do-curl() {
+    curl_body=$(curl "$@")
+    curl_exit=$? # stored in a variable so endtest can read it after this function returns
+}
+
 # test for add subject
 runtest "add subject"
 
 user=12
 
-curl_body=$(
-    curl localhost:3000/subjects \
+do-curl localhost:3000/subjects \
         -d "{\"userId\": $user}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         --max-time 5 \
         --fail-with-body \
         --silent
-)
     
 endtest 
 
 # add existing subject twice
 runtest "add existing subject again"
 
-curl_body=$(
-    curl localhost:3000/subjects \
+do-curl localhost:3000/subjects \
         -d "{\"userId\": $user}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
@@ -118,21 +130,18 @@ curl_body=$(
         --silent \
         --output /dev/null \
         --write-out "%{http_code}" # only get the status code of the result
-)
 
 endtest-expect-fail "$curl_body"
 
 # test for delete subject
 runtest "delete subject"
 
-curl_body=$(
-    curl localhost:3000/subjects?userId=12 \
+do-curl localhost:3000/subjects?userId=12 \
         -X DELETE \
         -H "Accept: application/json" \
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest
 
@@ -140,8 +149,7 @@ endtest
 # test for add object
 runtest "add object"
 
-curl_body=$(
-    curl localhost:3000/objects \
+do-curl localhost:3000/objects \
         -d '{
                 "type": "EHR",
                 "identifier": "Bob"
@@ -151,28 +159,25 @@ curl_body=$(
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest
 
 # test for delete object
 runtest "delete object"
 
-curl_body=$(
-    curl localhost:3000/objects?type=EHR\&identifier=Bob \
+do-curl localhost:3000/objects?type=EHR\&identifier=Bob \
         -X DELETE \
         -H "Accept: application/json" \
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest
 # test for modify object
 runtest "modify object"
 
 # first add bob again (he was deleted earlier)
-curl localhost:3000/objects \
+do-curl localhost:3000/objects \
     -d '{
             "type": "EHR",
             "identifier": "Bob"
@@ -186,8 +191,7 @@ curl localhost:3000/objects \
 # if adding bob failed for some reason, end the test
 endtest-if-failed
 
-curl_body=$(
-    curl localhost:3000/objects \
+do-curl localhost:3000/objects \
         -X PUT \
         -d '{
                 "original": {
@@ -204,7 +208,6 @@ curl_body=$(
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest
 
@@ -213,7 +216,7 @@ runtest "add relation"
 
 # add a subject again
 
-curl localhost:3000/subjects \
+do-curl localhost:3000/subjects \
     -d "{\"userId\": $user}" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json" \
@@ -235,29 +238,25 @@ post_body=$(cat <<END
 END
 )
 
-curl_body=$(
-    curl localhost:3000/relations \
+do-curl localhost:3000/relations \
         -d "$post_body" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest
 
 # test for delete relation
 runtest "delete relation"
 
-curl_body=$(
-    curl "localhost:3000/relations?objectType=EHR&objectIdentifier=Bobs%20leg%20surgery&name=viewer&subject=$user" \
+do-curl "localhost:3000/relations?objectType=EHR&objectIdentifier=Bobs%20leg%20surgery&name=viewer&subject=$user" \
         -X DELETE \
         -H "Accept: application/json" \
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest
 
