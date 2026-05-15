@@ -65,8 +65,13 @@ runtest() {
 }
 
 print-body() {
-    local body="$1"
-    if [ -n "$body" ] && jq empty >/dev/null 2>&1 <<<"$body"; then
+    local body="$@"
+
+    if [[ $body == "" ]]; then
+        return
+    fi
+
+    if jq empty >/dev/null 2>&1 <<<"$body"; then
         echo "json response:"
         jq 2>/dev/null <<<"$body"
     else
@@ -117,12 +122,17 @@ do-curl() {
     return $? # stored in a variable so endtest can read it after this function returns
 }
 
+
+### TESTS ###
+
+
 # test for add subject
 runtest "add subject"
 
 user=12
 
 do-curl localhost:3000/subjects \
+||||||| parent of acf6072 (fix: call print-body before endtest)
         -d "{\"userId\": $user}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
@@ -131,6 +141,7 @@ do-curl localhost:3000/subjects \
         --silent
     
 endtest $?
+
 
 # add existing subject twice
 runtest "add existing subject again"
@@ -145,6 +156,7 @@ do-curl localhost:3000/subjects \
 )
 
 endtest-expect-fail $?
+
 
 # test for delete subject
 runtest "delete subject"
@@ -174,6 +186,7 @@ do-curl localhost:3000/objects \
         --silent
 
 endtest $?
+
 
 # test for delete object
 runtest "delete object"
@@ -224,11 +237,11 @@ do-curl localhost:3000/objects \
 
 endtest $?
 
+
 # test for add relation
 runtest "add relation"
 
 # add a subject again
-
 do-curl localhost:3000/subjects \
     -d "{\"userId\": $user}" \
     -H "Content-Type: application/json" \
@@ -260,6 +273,7 @@ do-curl localhost:3000/relations \
         --silent
 
 endtest $?
+
 
 # test for delete relation
 runtest "delete relation"
