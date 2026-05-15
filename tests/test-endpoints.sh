@@ -62,6 +62,16 @@ runtest() {
     printf "$BOLD$1$RESET... "
 }
 
+print-body() {
+    local body="$1"
+    if [ -n "$body" ] && jq empty >/dev/null 2>&1 <<<"$body"; then
+        echo "json response:"
+        jq 2>/dev/null <<<"$body"
+    else
+        echo "text response:"
+        echo "$body"
+    fi
+}
 
 endtest() {
     if [[ $curl_exit != 0 ]]; then
@@ -71,19 +81,6 @@ endtest() {
         number_succeeded=$(($number_succeeded + 1))
         echo -e "${GREEN}✓${RESET}"
     fi
-    number_tests=$(($number_tests + 1))
-
-    if [[ $curl_exit != 0 ]]; then
-        if [ -n "$curl_body" ] && jq empty >/dev/null 2>&1 <<<"$curl_body"; then 
-            echo "json response:"
-            jq 2>/dev/null <<<"$curl_body"
-        else
-            echo "text response:"
-            echo "$curl_body"
-        fi
-    fi
-
-    curl_body=""
 }
 
 endtest-if-failed() {
