@@ -3,7 +3,7 @@
 if ! which curl; then 
     echo curl not found
     exit 1
-fi   
+fi
 
 project_dir="$(pwd)"
 target_dir="/tmp/lingua-franca"
@@ -54,6 +54,8 @@ number_succeeded=0
 number_failed=0
 number_expected_failed=0
 number_tests=0
+
+### TESTING FUNCTIONS ###
 
 
 current_test_name="No Name"
