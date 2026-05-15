@@ -5,6 +5,17 @@ if ! which curl; then
     exit 1
 fi
 
+readonly RED="\033[0;31m"
+readonly GREEN="\033[0;32m"
+readonly YELLOW="\033[0;33m"
+readonly RESET="\033[0m"
+readonly BOLD="\033[1m"
+
+number_succeeded=0
+number_failed=0
+number_expected_failed=0
+number_tests=0
+
 project_dir="$(pwd)"
 target_dir="/tmp/lingua-franca"
 mkdir -p "$target_dir"
@@ -44,16 +55,6 @@ echo
 echo Running tests...
 echo "---"
 
-readonly RED="\033[0;31m"
-readonly GREEN="\033[0;32m"
-readonly YELLOW="\033[0;33m"
-readonly RESET="\033[0m"
-readonly BOLD="\033[1m"
-
-number_succeeded=0
-number_failed=0
-number_expected_failed=0
-number_tests=0
 
 ### TESTING FUNCTIONS ###
 
@@ -112,7 +113,6 @@ endtest-expect-fail() {
         let number_failed++
         echo -e "${RED}✗${RESET}"
     fi
-    number_tests=$(($number_tests + 1))
 
     print-body $curl_body
 }
