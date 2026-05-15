@@ -58,12 +58,15 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Same as validate, but prints errors to stderr before returning.
+     * */
     validateWithWarnings(): ValidationError[] {
         const errors = this.validate();
         if (errors.length > 0) {
-            console.log("\x1b[0;31mWarning:\x1b[0m the following typeconfig-graph disparities were found:");
+            console.error("\x1b[0;31mWarning:\x1b[0m the following typeconfig-graph disparities were found:");
             for (const error of errors) {
-                console.log(
+                console.error(
                     error.kind === "missing_typeconfig"
                         ? `  \x1b[0;31m➜ Missing typeconfig: type ${error.type} has no config\x1b[0m`
                         : `  \x1b[0;31m➜ Invalid relation: type ${error.type} has no defined relation ${error.relationName}\x1b[0m`
