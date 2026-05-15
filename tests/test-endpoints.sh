@@ -18,26 +18,6 @@ cd "$target_dir" || exit 1
 node "$project_dir" &
 
 server_pid=$!
-sleep 2 # give it time to start up
-# if server_pid still running after 2 seconds we know it didnt die instantly
-if ! kill -0 $server_pid 2>/dev/null; then
-    echo "failed to run server (process died immediately)"
-    exit 1
-fi
-echo started node server with pid $server_pid
-echo
-echo Running tests...
-echo "---"
-
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-YELLOW="\033[0;33m"
-RESET="\033[0m"
-
-number_succeeded=0
-number_failed=0
-number_expected_failed=0
-number_tests=0
 
 cleanup() {
     kill $server_pid 
@@ -53,12 +33,35 @@ cleanup() {
 # automatically closes node server on ctrl+c
 trap cleanup EXIT
 
+sleep 2 # give it time to start up
+# if server_pid still running after 2 seconds we know it didnt die instantly
+if ! kill -0 $server_pid 2>/dev/null; then
+    echo "failed to run server (process died immediately)"
+    exit 1
+fi
+echo started node server with pid $server_pid
+echo
+echo Running tests...
+echo "---"
+
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+RESET="\033[0m"
+BOLD="\033[1m"
+
+number_succeeded=0
+number_failed=0
+number_expected_failed=0
+number_tests=0
+
+
 
 current_test_name=""
 
 runtest() {
     current_test_name=$1
-    printf "\033[1m$1\033[0m... "
+    printf "$BOLD$1$RESET... "
 }
 
 
@@ -93,7 +96,7 @@ endtest-if-failed() {
 
 endtest-expect-fail() {
     # was the status code not a success code, or the last command failed
-    if [[ "$1" != "2"* ]] || [[ $curl_exit != 0 ]]; then
+    if [[ $curl_exit != 0 ]]; then
         echo -e "${YELLOW}✓${RESET}"
         number_expected_failed=$(($number_expected_failed + 1))
     else
@@ -132,11 +135,10 @@ do-curl localhost:3000/subjects \
         -H "Accept: application/json" \
         --max-time 5 \
         --fail-with-body \
-        --silent \
-        --output /dev/null \
-        --write-out "%{http_code}" # only get the status code of the result
+        --silent
+)
 
-endtest-expect-fail "$curl_body"
+endtest-expect-fail
 
 # test for delete subject
 runtest "delete subject"
