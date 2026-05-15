@@ -17,7 +17,7 @@ npm run build || { echo "Build failed"; exit 1; }
 cd "$target_dir" || exit 1
 node "$project_dir" &
 
-server_pid=$!
+readonly server_pid=$!
 
 cleanup() {
     kill $server_pid 
@@ -44,11 +44,11 @@ echo
 echo Running tests...
 echo "---"
 
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-YELLOW="\033[0;33m"
-RESET="\033[0m"
-BOLD="\033[1m"
+readonly RED="\033[0;31m"
+readonly GREEN="\033[0;32m"
+readonly YELLOW="\033[0;33m"
+readonly RESET="\033[0m"
+readonly BOLD="\033[1m"
 
 number_succeeded=0
 number_failed=0
