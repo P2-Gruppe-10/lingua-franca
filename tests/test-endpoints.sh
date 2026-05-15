@@ -56,9 +56,7 @@ number_expected_failed=0
 number_tests=0
 
 
-
-current_test_name=""
-
+current_test_name="No Name"
 runtest() {
     current_test_name=$1
     printf "$BOLD$1$RESET... "
