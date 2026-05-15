@@ -24,19 +24,14 @@ export async function serializeGraph(graph: Graph): Promise<void> {
 async function makeBackup(stringifiedGraph: string, amount: moment.DurationInputArg1, unit: moment.DurationInputArg2) {
     // get current time and time of last backup
     const now = moment().format(fmt);
-    const lastBackup = (
-        await fs.readFile("./lastBackupTime.txt", { encoding: "utf-8" }).catch(() => "1970-06-07T00:00:00")
-    ).trim();
+    const lastBackup = await lastBackupTime();
 
     // if at least one hour has passed since last backup, create a new backup
-    if (moment(now).isAfter(moment(lastBackup).add(amount, unit))) {
+    if (moment(now).isAfter(lastBackup.add(amount, unit))) {
         await fs.mkdir("./backup/", { recursive: true });
 
         // create new backup file with current graph, name it the current time
         await fs.writeFile(`./backup/${now}.json`, stringifiedGraph);
-
-        // update time of last backup to now
-        await fs.writeFile("./lastBackupTime.txt", now);
     }
 }
 
@@ -49,13 +44,23 @@ export async function deserializeGraph(): Promise<Graph> {
 }
 
 /**
+ * Finds the newest backup in
+ * */
+async function lastBackupTime(): Promise<moment.Moment> {
+    const backupfiles = await fs.readdir("./backup/").catch(() => []); // if no backups, give empty array which will fall back to unix epoch in next line
+    const latestBackupFile = backupfiles.sort().reverse()[0] ?? "1970-06-07T00:00:00";
+    const timestamp = latestBackupFile.replace(/\.json$/i, "");
+    return moment(timestamp);
+}
+
+/**
  * Creates Graph from newest valid backup file.
  *
  * @throws {Error} if no valid backup can be found.
  */
 export async function restoreFromBackup(): Promise<Graph> {
     // create an array of backup file names
-    const backupfiles = await fs.readdir("/backup/");
+    const backupfiles = await fs.readdir("./backup/").catch(() => []); // on error, give empty array, will jump to actual throw at the bottom of the function
     backupfiles.sort().reverse();
 
     for (const filename of backupfiles) {
