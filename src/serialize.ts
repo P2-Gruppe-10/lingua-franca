@@ -2,16 +2,24 @@ import { promises as fs } from "node:fs";
 import Graph from "./graph.ts";
 import moment from "moment";
 
+// Date/time format
+const fmt = "YYYY-MM-DDTHH:mm:ss";
+
+/**
+ * Updates config.json with newest version of Graph
+ *
+ * If more than 1 hour since last backup a new one is created
+ */
 export async function serializeConfig(graph: Graph): Promise<void> {
     //Converts graph to JSON string and assigns it to stringifiedGraph
     const stringifiedGraph = graph.stringify();
 
     //Gets current time and time of last backup
-    const now = moment().format("YYYY-MM-DDTHH:mm:ss");
+    const now = moment().format(fmt);
     const lastBackup = (
         await fs
             .readFile("./lastBackupTime.txt", { encoding: "utf-8" })
-            .catch(() => "1970-01-01T00:00:00")
+            .catch(() => "1970-06-07T00:00:00")
     ).trim();
 
     //Compare if at least one hour since last backup - if so create new backup
@@ -31,6 +39,11 @@ export async function serializeConfig(graph: Graph): Promise<void> {
     await fs.writeFile("./config.json", stringifiedGraph);
 }
 
+/**
+ * Creates Graph from newest config.json file
+ *
+ * @throws {Error} if config.json did not create a valid
+ */
 export async function deserializeConfig(): Promise<Graph> {
     //Reads config.json
     const config = await fs.readFile("./config.json");
@@ -38,7 +51,29 @@ export async function deserializeConfig(): Promise<Graph> {
     //Converts config.json contents to Graph and returns this
     const graph = Graph.fromJSON(config.toString());
 
-    Object.setPrototypeOf(graph, Graph.prototype);
-
     return graph;
+}
+
+/**
+ * Creates Graph from newest valid backup file
+ *
+ * @throws {Error} if no valid backup can be found
+ */
+export async function restoreFromBackup(): Promise<Graph> {
+    // Creates array of backup file names
+    const backupfiles = await fs.readdir("/backup/");
+    backupfiles.sort();
+
+    for (const filename of backupfiles.reverse()) {
+        // Attempts to read current backup file, create and return Graph
+        try {
+            const config = await fs.readFile("./backup/" + filename);
+            const graph = Graph.fromJSON(config.toString());
+            return graph;
+        } catch {
+            // If fail try next
+            continue;
+        }
+    }
+    throw new Error("No valid backup file could be found");
 }
