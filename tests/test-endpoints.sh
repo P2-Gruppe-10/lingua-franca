@@ -74,24 +74,29 @@ print-body() {
 }
 
 endtest() {
-    if [[ $curl_exit != 0 ]]; then
-        echo -e "${RED}✗${RESET}"
+    local exit_code=$1
+    number_tests=$(($number_tests + 1))
+    if [[ $exit_code != 0 ]]; then
+        echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
         number_failed=$(($number_failed + 1))
     else
         number_succeeded=$(($number_succeeded + 1))
         echo -e "${GREEN}✓${RESET}"
     fi
+
+    print-body $curl_body
 }
 
 endtest-if-failed() {
-    if [[ $curl_exit != 0 ]]; then
-        endtest
+    if [[ $1 != 0 ]]; then
+        endtest $@
     fi
 }
 
 endtest-expect-fail() {
+    local exit_code=$1
     # was the status code not a success code, or the last command failed
-    if [[ $curl_exit != 0 ]]; then
+    if [[ $exit_code != 0 ]]; then
         echo -e "${YELLOW}✓${RESET}"
         number_expected_failed=$(($number_expected_failed + 1))
     else
@@ -99,11 +104,13 @@ endtest-expect-fail() {
         echo -e "${RED}✗${RESET}"
     fi
     number_tests=$(($number_tests + 1))
+
+    print-body $curl_body
 }
 
 do-curl() {
     curl_body=$(curl "$@")
-    curl_exit=$? # stored in a variable so endtest can read it after this function returns
+    return $? # stored in a variable so endtest can read it after this function returns
 }
 
 # test for add subject
@@ -119,7 +126,7 @@ do-curl localhost:3000/subjects \
         --fail-with-body \
         --silent
     
-endtest 
+endtest $?
 
 # add existing subject twice
 runtest "add existing subject again"
@@ -133,7 +140,7 @@ do-curl localhost:3000/subjects \
         --silent
 )
 
-endtest-expect-fail
+endtest-expect-fail $?
 
 # test for delete subject
 runtest "delete subject"
@@ -145,7 +152,7 @@ do-curl "localhost:3000/subjects?userId=$user" \
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 
 
 # test for add object
@@ -162,7 +169,7 @@ do-curl localhost:3000/objects \
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 
 # test for delete object
 runtest "delete object"
@@ -174,7 +181,7 @@ do-curl localhost:3000/objects?type=EHR\&identifier=Bob \
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 # test for modify object
 runtest "modify object"
 
@@ -190,8 +197,8 @@ do-curl localhost:3000/objects \
     --fail-with-body \
     --silent
 
-# if adding bob failed for some reason, end the test
-endtest-if-failed
+# If adding bob failed for some reason, end the test
+endtest-if-failed $?
 
 do-curl localhost:3000/objects \
         -X PUT \
@@ -211,7 +218,7 @@ do-curl localhost:3000/objects \
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 
 # test for add relation
 runtest "add relation"
@@ -226,7 +233,7 @@ do-curl localhost:3000/subjects \
     --fail-with-body \
     --silent
 
-endtest-if-failed
+endtest-if-failed $?
 
 post_body=$(cat <<END
     {
@@ -248,7 +255,7 @@ do-curl localhost:3000/relations \
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 
 # test for delete relation
 runtest "delete relation"
@@ -260,7 +267,7 @@ do-curl "localhost:3000/relations?objectType=EHR&objectIdentifier=Bobs%20leg%20s
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 
 runtest "authorization"
 
@@ -284,7 +291,7 @@ do-curl localhost:3000/relations \
         --fail-with-body \
         --silent
 
-endtest-if-failed 
+endtest-if-failed $?
 
 do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permission=can_view&userId=$user" \
         -H "Accept: application/json" \
@@ -292,7 +299,7 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permiss
         --fail-with-body \
         --silent
 
-endtest
+endtest $?
 
 runtest "authorizing on an object that doesn't exist"
 
@@ -302,7 +309,7 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=fortnitepeter2009&permission
         --fail-with-body \
         --silent
 
-endtest-expect-fail "$curl_body"
+endtest-expect-fail $?
 
 runtest "authorizing on a type that doesn't exist"
 
@@ -312,7 +319,7 @@ do-curl "localhost:3000/authorize?type=poop&objectId=Bobs%20leg%20surgery&permis
         --fail-with-body \
         --silent
 
-endtest-expect-fail "$curl_body"
+endtest-expect-fail $?
 
 runtest "authorizing a user that doesn't exist"
 
@@ -322,7 +329,7 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permiss
         --fail-with-body \
         --silent
 
-endtest-expect-fail "$curl_body"
+endtest-expect-fail $?
 
 runtest "authorizing for a permission that doesn't exist"
 
@@ -332,4 +339,4 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permiss
         --fail-with-body \
         --silent
 
-endtest-expect-fail "$curl_body"
+endtest-expect-fail $?
