@@ -75,13 +75,14 @@ print-body() {
 
 endtest() {
     local exit_code=$1
-    number_tests=$(($number_tests + 1))
+    let number_tests++
     if [[ $exit_code != 0 ]]; then
         echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
-        number_failed=$(($number_failed + 1))
+        let number_failed++
     else
-        number_succeeded=$(($number_succeeded + 1))
+        let number_succeeded++
         echo -e "${GREEN}✓${RESET}"
+        echo -e "${GREEN}succeeded test: \"$current_test_name\"${RESET}"
     fi
 
     print-body $curl_body
@@ -95,12 +96,13 @@ endtest-if-failed() {
 
 endtest-expect-fail() {
     local exit_code=$1
+    let number_tests++
     # was the status code not a success code, or the last command failed
     if [[ $exit_code != 0 ]]; then
         echo -e "${YELLOW}✓${RESET}"
-        number_expected_failed=$(($number_expected_failed + 1))
+        let number_expected_failed++
     else
-        number_failed=$(($number_failed + 1))
+        let number_failed++
         echo -e "${RED}✗${RESET}"
     fi
     number_tests=$(($number_tests + 1))
