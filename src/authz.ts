@@ -76,6 +76,9 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Gets all objects in object#... usersets with a certain relation to another object.
+     * */
     private resolveTargets(object: Obj, relation: string): Obj[] {
         return this.graph
             .getRelationsTo(object)
@@ -84,6 +87,9 @@ export default class AuthZ {
             .map((edge) => (edge.subject as UserSet).object);
     }
 
+    /**
+     * Returns true if the user has a certain relation on an object, whether through direct relation, usersets, computed userset rewrites, or tuple-to-userset rewrites.
+     * */
     private hasRelation(
         user: number,
         object: Obj,
@@ -154,6 +160,11 @@ export default class AuthZ {
         return false;
     }
 
+    /**
+     * Adds an edge to the graph stored by the AuthZ system. Reverts if validation fails.
+     * @returns {ValidationError[]} An array of validation errors found after adding the edge.
+     *                              Returns an empty array if the edge is valid and kept.
+     * */
     addEdge(obj: Obj, name: string, subject: Subject): ValidationError[] {
         this.graph.addEdge(obj, name, subject);
         const errors = this.validate();
@@ -161,6 +172,12 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Adds a vertex to the graph stored by the AuthZ system. Reverts if validation fails.
+     * @returns {ValidationError[] | null} An array of validation errors if the vertex was new but invalid.
+     *                                     An empty array if successfully added with no errors.
+     *                                     `null` if the vertex already exists in the graph.
+     * */
     addVertex(vertex: Vertex): ValidationError[] | null {
         const applied = this.graph.addVertex(vertex);
         if (!applied) return null;
@@ -169,6 +186,12 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Modifies an object in the graph stored by the AuthZ system. Reverts if validation fails.
+     * @returns {ValidationError[] | null} An array of validation errors if the modified object was new but invalid.
+     *                                     An empty array if successfully modified with no errors.
+     *                                     `null` if the modified object already exists in the graph.
+     * */
     modifyObject(original: Obj, modified: Obj): ValidationError[] | null {
         const applied = this.graph.modifyObject(original, modified);
         if (!applied) return null;
@@ -177,10 +200,20 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Deletes an edge in the graph stored by the AuthZ system.
+     * @returns {boolean} `true` if the edge was found and successfully deleted.
+     *                    `false` if the edge did not exist in the graph.
+     * */
     deleteEdge(relation: Relation): boolean {
         return this.graph.deleteEdge(relation);
     }
 
+    /**
+     * Deletes a vertex in the graph stored by the AuthZ system.
+     * @returns {boolean} `true` if the vertex was found and successfully deleted.
+     *                    `false` if the vertex did not exist in the graph.
+     * */
     deleteVertex(vertex: Vertex): boolean {
         return this.graph.deleteVertex(vertex);
     }
