@@ -199,6 +199,8 @@ do-curl localhost:3000/objects?type=EHR\&identifier=Bob \
         --silent
 
 endtest $?
+
+
 # test for modify object
 runtest "modify object"
 
@@ -287,6 +289,7 @@ do-curl "localhost:3000/relations?objectType=EHR&objectIdentifier=Bobs%20leg%20s
 
 endtest $?
 
+
 runtest "authorization"
 
 post_body=$(cat <<END
@@ -319,6 +322,7 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permiss
 
 endtest $?
 
+
 runtest "authorizing on an object that doesn't exist"
 
 do-curl "localhost:3000/authorize?type=EHR&objectId=fortnitepeter2009&permission=can_view&userId=$user" \
@@ -329,7 +333,9 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=fortnitepeter2009&permission
 
 endtest-expect-fail $?
 
+
 runtest "authorizing on a type that doesn't exist"
+
 
 do-curl "localhost:3000/authorize?type=poop&objectId=Bobs%20leg%20surgery&permission=can_view&userId=$user" \
         -H "Accept: application/json" \
@@ -338,6 +344,7 @@ do-curl "localhost:3000/authorize?type=poop&objectId=Bobs%20leg%20surgery&permis
         --silent
 
 endtest-expect-fail $?
+
 
 runtest "authorizing a user that doesn't exist"
 
@@ -348,6 +355,7 @@ do-curl "localhost:3000/authorize?type=EHR&objectId=Bobs%20leg%20surgery&permiss
         --silent
 
 endtest-expect-fail $?
+
 
 runtest "authorizing for a permission that doesn't exist"
 
