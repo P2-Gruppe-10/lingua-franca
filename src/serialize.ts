@@ -44,7 +44,7 @@ export async function deserializeGraph(): Promise<Graph> {
 }
 
 /**
- * Finds the newest backup in
+ * Finds the newest backup timestamp in ./backups/, returns a Moment object
  * */
 async function lastBackupTime(): Promise<moment.Moment> {
     const backupfiles = await fs.readdir("./backup/").catch(() => []); // if no backups, give empty array which will fall back to unix epoch in next line
