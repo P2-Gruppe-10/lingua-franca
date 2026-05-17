@@ -67,11 +67,6 @@ export default class AuthZ {
         return { kind: "ok" };
     }
 
-    private objectMissingType(object: Obj): boolean {
-        if (!this.typeconfigs.get(object.type)) return true;
-        return false;
-    }
-
     /**
      * Validates harmony between the graph and typeconfig inside the AuthZ object.
      * Returns a (possibly empty) list of ValidationErrors.
@@ -93,7 +88,7 @@ export default class AuthZ {
 
         for (const vertex of graph.vertices) {
             if (typeof vertex === "number") continue;
-            if (this.objectMissingType(vertex)) typesWithoutConfigs.add(vertex.type);
+            if (!this.typeconfigs.has(vertex.type)) typesWithoutConfigs.add(vertex.type);
         }
 
         for (const type of typesWithoutConfigs) {
@@ -224,7 +219,7 @@ export default class AuthZ {
      *                                                     `{ kind: "duplicate" }` if the vertex already exists in the graph.
      * */
     addVertex(vertex: Vertex): ValidationResult | { kind: "duplicate" } {
-        if (vertex instanceof Obj && this.objectMissingType(vertex)) {
+        if (vertex instanceof Obj && !this.typeconfigs.has(vertex.type)) {
             return { kind: "missing_typeconfig", type: vertex.type };
         }
         if (!this.graph.addVertex(vertex)) {
@@ -241,7 +236,7 @@ export default class AuthZ {
      *                                                                    or the modified object already exists in the graph.
      */
     modifyObject(original: Obj, modified: Obj): ValidationResult | { kind: "duplicate_or_nonexistent" } {
-        if (this.objectMissingType(modified)) {
+        if (!this.typeconfigs.has(modified.type)) {
             return { kind: "missing_typeconfig", type: modified.type };
         }
         if (!this.graph.modifyObject(original, modified)) {
