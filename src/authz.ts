@@ -6,6 +6,8 @@ type ValidationError =
     | { kind: "missing_typeconfig"; type: string }
     | { kind: "invalid_relation"; type: string; relationName: string };
 
+type ValidationResult = ValidationError | { kind: "ok" };
+
 /**
  * The Authorization system, being the result of harmony between a graph and a set of typeconfigs.
  * */
@@ -18,6 +20,58 @@ export default class AuthZ {
         this.typeconfigs = typeconfigs;
     }
 
+    private validateEdge(edge: Relation): ValidationResult {
+        const type = edge.object.type;
+        const typeconfig = this.typeconfigs.get(type);
+
+        // does the edge's object's type have a config?
+        if (!typeconfig) {
+            return {
+                kind: "missing_typeconfig",
+                type,
+            };
+        }
+
+        // if so, does the edge's relationName exist on that object's config?
+        if (!typeconfig.validRelations.has(edge.name)) {
+            return {
+                kind: "invalid_relation",
+                type,
+                relationName: edge.name,
+            };
+        }
+
+        // if so, if the subject is a UserSet, does the object of that UserSet:
+        if (edge.subject instanceof UserSet) {
+            const userset = edge.subject;
+            const usersetObjectTypeconfig = this.typeconfigs.get(userset.object.type);
+
+            // have a config for its type?
+            if (!usersetObjectTypeconfig) {
+                return {
+                    kind: "missing_typeconfig",
+                    type: userset.object.type,
+                };
+            }
+
+            // if so, does the relation of the UserSet exist on that object?
+            if (!usersetObjectTypeconfig.validRelations.has(userset.relationName))
+                return {
+                    kind: "invalid_relation",
+                    type: userset.object.type,
+                    relationName: userset.relationName,
+                };
+        }
+
+        // if all this passes, the edge is good!
+        return { kind: "ok" };
+    }
+
+    private objectMissingType(object: Obj): boolean {
+        if (!this.typeconfigs.get(object.type)) return true;
+        return false;
+    }
+
     /**
      * Validates harmony between the graph and typeconfig inside the AuthZ object.
      * Returns a (possibly empty) list of ValidationErrors.
@@ -27,28 +81,19 @@ export default class AuthZ {
         const typesWithoutConfigs = new Set<string>();
 
         for (const edge of graph.edges) {
-            const type = edge.object.type;
-            const typeconfig = this.typeconfigs.get(type);
-
-            if (!typeconfig) {
-                typesWithoutConfigs.add(type);
-                continue; // no point checking relations on a type with no config
-            }
-
-            if (!typeconfig.validRelations.has(edge.name)) {
-                errors.push({
-                    kind: "invalid_relation",
-                    type,
-                    relationName: edge.name,
-                });
+            const error = this.validateEdge(edge);
+            if (error.kind !== "ok") {
+                if (error.kind === "missing_typeconfig") {
+                    typesWithoutConfigs.add(error.type);
+                } else {
+                    errors.push(error);
+                }
             }
         }
 
         for (const vertex of graph.vertices) {
             if (typeof vertex === "number") continue;
-            if (!this.typeconfigs.get(vertex.type)) {
-                typesWithoutConfigs.add(vertex.type);
-            }
+            if (this.objectMissingType(vertex)) typesWithoutConfigs.add(vertex.type);
         }
 
         for (const type of typesWithoutConfigs) {
@@ -161,43 +206,48 @@ export default class AuthZ {
     }
 
     /**
-     * Adds an edge to the graph stored by the AuthZ system. Reverts if validation fails.
-     * @returns {ValidationError[]} An array of validation errors found after adding the edge.
-     *                              Returns an empty array if the edge is valid and kept.
+     * Adds an edge to the graph stored by the AuthZ system. Does not modify graph if validation fails.
+     * @returns {ValidationResult} The result of validating the new edge.
+     * @throws {Error} If the edge's object does not exist in the graph.
+     * @throws {Error} If the edge's UserId or UserSet object does not exist in the graph.
+     * @throws {Error} If the edge already exists in the graph.
      * */
-    addEdge(obj: Obj, name: string, subject: Subject): ValidationError[] {
-        this.graph.addEdge(obj, name, subject);
-        const errors = this.validate();
-        if (errors.length > 0) this.graph.deleteEdge(new Relation(obj, name, subject));
-        return errors;
+    addEdge(obj: Obj, name: string, subject: Subject): ValidationResult {
+        const res = this.validateEdge(new Relation(obj, name, subject));
+        if (res.kind === "ok") this.graph.addEdge(obj, name, subject);
+        return res;
     }
 
     /**
-     * Adds a vertex to the graph stored by the AuthZ system. Reverts if validation fails.
-     * @returns {ValidationError[] | null} An array of validation errors if the vertex was new but invalid.
-     *                                     An empty array if successfully added with no errors.
-     *                                     `null` if the vertex already exists in the graph.
+     * Adds a vertex to the graph stored by the AuthZ system. Does not modify graph if validation fails.
+     * @returns {ValidationResult | { kind: "duplicate" }} The result of validating the new vertex.
+     *                                                     `{ kind: "duplicate" }` if the vertex already exists in the graph.
      * */
-    addVertex(vertex: Vertex): ValidationError[] | null {
-        const applied = this.graph.addVertex(vertex);
-        if (!applied) return null;
-        const errors = this.validate();
-        if (errors.length > 0) this.graph.deleteVertex(vertex);
-        return errors;
+    addVertex(vertex: Vertex): ValidationResult | { kind: "duplicate" } {
+        if (vertex instanceof Obj && this.objectMissingType(vertex)) {
+            return { kind: "missing_typeconfig", type: vertex.type };
+        }
+        if (!this.graph.addVertex(vertex)) {
+            return { kind: "duplicate" };
+        }
+        return { kind: "ok" };
     }
 
     /**
-     * Modifies an object in the graph stored by the AuthZ system. Reverts if validation fails.
-     * @returns {ValidationError[] | null} An array of validation errors if the modified object was new but invalid.
-     *                                     An empty array if successfully modified with no errors.
-     *                                     `null` if the modified object already exists in the graph.
-     * */
-    modifyObject(original: Obj, modified: Obj): ValidationError[] | null {
-        const applied = this.graph.modifyObject(original, modified);
-        if (!applied) return null;
-        const errors = this.validate();
-        if (errors.length > 0) this.graph.modifyObject(modified, original);
-        return errors;
+     * Modifies an object in the graph stored by the AuthZ system. Does not modify graph if validation fails.
+     * @returns {ValidationResult | { kind: "duplicate_or_nonexistent" }} The result of validating the modified vertex.
+     *                                                                    `{ kind: "duplicate_or_nonexistent" }` if the
+     *                                                                    original object does not exist in the graph,
+     *                                                                    or the modified object already exists in the graph.
+     */
+    modifyObject(original: Obj, modified: Obj): ValidationResult | { kind: "duplicate_or_nonexistent" } {
+        if (this.objectMissingType(modified)) {
+            return { kind: "missing_typeconfig", type: modified.type };
+        }
+        if (!this.graph.modifyObject(original, modified)) {
+            return { kind: "duplicate_or_nonexistent" };
+        }
+        return { kind: "ok" };
     }
 
     /**

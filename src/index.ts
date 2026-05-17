@@ -143,9 +143,9 @@ app.post("/relations", (req, res) => {
     }
 
     try {
-        const errors = authz.addEdge(obj, name, subject);
-        if (errors.length > 0) {
-            res.status(422).json({ errors: errors });
+        const modificationResult = authz.addEdge(obj, name, subject);
+        if (modificationResult.kind !== "ok") {
+            res.status(422).json({ error: modificationResult });
             return;
         }
     } catch (err) {
@@ -224,14 +224,14 @@ app.post("/objects", (req, res) => {
     const object = new Obj(result.data.type, result.data.identifier);
     const modificationResult = authz.addVertex(object);
 
-    if (modificationResult === null) {
+    if (modificationResult.kind === "duplicate") {
         res.status(409).json({
             error: "Object already exists",
         });
         return;
     }
-    if (modificationResult.length > 0) {
-        res.status(422).json({ errors: modificationResult });
+    if (modificationResult.kind !== "ok") {
+        res.status(422).json({ error: modificationResult });
         return;
     }
     res.status(200).end();
@@ -281,14 +281,14 @@ app.put("/objects", (req, res) => {
     const modified = new Obj(result.data.modified.type, result.data.modified.identifier);
 
     const modificationResult = authz.modifyObject(original, modified);
-    if (modificationResult === null) {
+    if (modificationResult.kind === "duplicate_or_nonexistent") {
         res.status(409).json({
             error: "Could not find the object to modify, or resulting object already exists",
         });
         return;
     }
-    if (modificationResult.length > 0) {
-        res.status(422).json({ errors: modificationResult });
+    if (modificationResult.kind !== "ok") {
+        res.status(422).json({ error: modificationResult });
         return;
     }
 
@@ -311,7 +311,9 @@ app.post("/subjects", (req, res) => {
 
     const subject: UserId = result.data.userId;
 
-    if (!authz.addVertex(subject)) {
+    const modificationResult = authz.addVertex(subject);
+
+    if (modificationResult.kind === "duplicate") {
         res.status(409).json({
             error: "Subject already exists",
         });
