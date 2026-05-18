@@ -119,7 +119,7 @@ export default class AuthZ {
     /**
      * Gets all objects in object#... usersets with a certain relation to another object.
      * */
-    private resolveTargets(object: Obj, relation: string): Obj[] {
+    resolveTargets(object: Obj, relation: string): Obj[] {
         return this.graph
             .getRelationsTo(object)
             .filter((edge) => edge.name === relation)

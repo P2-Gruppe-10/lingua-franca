@@ -1,4 +1,5 @@
 import type { Subject, UserId } from "./acl.ts";
+import AuthZ from "./authz.ts";
 import {
     Obj,
     Relation,
@@ -169,24 +170,50 @@ export default class Graph {
         return graph;
     }
 
-    DFS(target: UserId, subject: Subject): boolean {
+    DFS(target: UserId, subject: Subject, authz?: AuthZ): boolean {
         const stack: Subject[] = [subject];
-        const visited: Set<Subject> = new Set<Subject>();
+        // Is a string because javascript probably uses "Object.Is", while
+        // we want to check for equality
+        const visited: Set<string> = new Set<string>();
 
         while (stack.length > 0) {
             // since the stack is not empty, pop can not return undefined
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const node = stack.pop()!;
-            if (visited.has(node)) {
+            if (visited.has(node.toString())) {
                 continue;
             }
 
-            visited.add(node);
+            visited.add(node.toString());
 
             if (node === target) return true;
 
             // if our non-target node is not a UserSet, we can't do anything with it, so skip to next iteration
             if (typeof node === "number") continue;
+
+            if (authz !== undefined) {
+                // If there is an authz instance passed in, we want to use potential rewrites.
+                const typeconfig = authz.typeconfigs.get(node.object.type);
+                const rewrites = typeconfig?.usersetRewrites.get(node.relationName);
+                if (rewrites !== undefined) {
+                    for (const rewrite of rewrites) {
+                        // If the given relation has a simple alias rewrite,
+                        // make sure to explore that path later.
+                        if (typeof rewrite === "string") {
+                            stack.push(new UserSet(node.object, rewrite));
+                            continue;
+                        }
+
+                        // If the rewrite is a `RewriteRule` then we have the following scenario
+                        // node.object    <--    target    <--    subject
+                        //             relation        subRelation
+                        //
+                        // And we want to explore all subjects with `subRelation` on `target`:
+                        const targets = authz.resolveTargets(node.object, rewrite.relation);
+                        targets.forEach((target) => stack.push(new UserSet(target, rewrite.subRelation)));
+                    }
+                }
+            }
 
             const subjects = this.getRelationsTo(node.object)
                 // only take the relations which have the correct name
