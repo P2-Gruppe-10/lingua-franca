@@ -21,6 +21,15 @@ function makeDocTypeconfig() {
     );
 }
 
+function makeGroupTypeconfig() {
+    return new Typeconfig(
+        "group",
+        new Set(["member", "admin", "parent"]),
+        new Map([["member", new Set(["admin", { relation: "parent", subRelation: "member" }])]]),
+        new Map()
+    );
+}
+
 function makeFolderTypeconfig() {
     return new Typeconfig(folderType, new Set(["viewer"]), new Map(), new Map());
 }
@@ -64,6 +73,56 @@ describe("AuthZ", () => {
         it("returns true when user has a directly granting relation", () => {
             const graph = new Graph([], [new Relation(docObj, "viewer", userId)]);
             const authz = new AuthZ(graph, new Map([[docType, makeDocTypeconfig()]]));
+
+            expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
+        });
+
+        it("returns true when user has an indirectly granting relation", () => {
+            const group = new Obj("group", "test");
+            const graph = new Graph(
+                [],
+                [new Relation(docObj, "viewer", new UserSet(group, "member")), new Relation(group, "member", userId)]
+            );
+            const authz = new AuthZ(graph, new Map([[docType, makeDocTypeconfig()]]));
+
+            expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
+        });
+
+        it("returns true when user has an indirectly granting relation, via typeconfig", () => {
+            const group = new Obj("group", "test");
+            const graph = new Graph(
+                [],
+                [new Relation(docObj, "viewer", new UserSet(group, "member")), new Relation(group, "admin", userId)]
+            );
+            const authz = new AuthZ(
+                graph,
+                new Map([
+                    [docType, makeDocTypeconfig()],
+                    ["group", makeGroupTypeconfig()],
+                ])
+            );
+
+            expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
+        });
+
+        it("returns true when user has an indirectly granting relation, via tuple to rewrite", () => {
+            const group = new Obj("group", "test");
+            const parent = new Obj("group", "parent");
+            const graph = new Graph(
+                [],
+                [
+                    new Relation(docObj, "viewer", new UserSet(group, "member")),
+                    new Relation(group, "parent", new UserSet(parent, SENTINEL)),
+                    new Relation(parent, "member", userId),
+                ]
+            );
+            const authz = new AuthZ(
+                graph,
+                new Map([
+                    [docType, makeDocTypeconfig()],
+                    ["group", makeGroupTypeconfig()],
+                ])
+            );
 
             expect(authz.hasPermission(userId, docObj, "can_view")).toBe(true);
         });
