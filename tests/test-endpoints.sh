@@ -72,9 +72,9 @@ print-body() {
         return
     fi
 
-    if jq empty >/dev/null 2>&1 <<<"$body"; then
+    if jq empty 2>/dev/null <<<"$body"; then
         echo "json response:"
-        jq 2>/dev/null <<<"$body"
+        jq <<<"$body"
     else
         echo "text response:"
         echo "$body"
