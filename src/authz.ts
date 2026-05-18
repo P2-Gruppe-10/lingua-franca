@@ -1,11 +1,12 @@
-import type { PathLike } from "node:fs";
 import { UserSet, Obj, type Subject, Relation } from "./acl.ts";
-import Graph, { TOMBSTONE, type Vertex } from "./graph.ts";
-import Typeconfig, { typeconfigsFromDir } from "./typeconfig.ts";
+import Graph, { SENTINEL, type Vertex } from "./graph.ts";
+import Typeconfig from "./typeconfig.ts";
 
 type ValidationError =
     | { kind: "missing_typeconfig"; type: string }
     | { kind: "invalid_relation"; type: string; relationName: string };
+
+type ValidationResult = ValidationError | { kind: "ok" };
 
 /**
  * The Authorization system, being the result of harmony between a graph and a set of typeconfigs.
@@ -19,16 +20,51 @@ export default class AuthZ {
         this.typeconfigs = typeconfigs;
     }
 
-    static async withDir(graph: Graph, dir: PathLike) {
-        const typeconfigs = await typeconfigsFromDir(dir);
+    private validateEdge(edge: Relation): ValidationResult {
+        const type = edge.object.type;
+        const typeconfig = this.typeconfigs.get(type);
 
-        // map each typeconfig to its type
-        const typeconfigMap = new Map<string, Typeconfig>();
-        typeconfigs.forEach((typeconfig) => {
-            typeconfigMap.set(typeconfig.type, typeconfig);
-        });
+        // does the edge's object's type have a config?
+        if (!typeconfig) {
+            return {
+                kind: "missing_typeconfig",
+                type,
+            };
+        }
 
-        return new AuthZ(graph, typeconfigMap);
+        // if so, does the edge's relationName exist on that object's config?
+        if (!typeconfig.validRelations.has(edge.name)) {
+            return {
+                kind: "invalid_relation",
+                type,
+                relationName: edge.name,
+            };
+        }
+
+        // if so, if the subject is a UserSet, does the object of that UserSet:
+        if (edge.subject instanceof UserSet) {
+            const userset = edge.subject;
+            const usersetObjectTypeconfig = this.typeconfigs.get(userset.object.type);
+
+            // have a config for its type?
+            if (!usersetObjectTypeconfig) {
+                return {
+                    kind: "missing_typeconfig",
+                    type: userset.object.type,
+                };
+            }
+
+            // if so, does the relation of the UserSet exist on that object? (given that it is not sentinel)
+            if (userset.relationName !== SENTINEL && !usersetObjectTypeconfig.validRelations.has(userset.relationName))
+                return {
+                    kind: "invalid_relation",
+                    type: userset.object.type,
+                    relationName: userset.relationName,
+                };
+        }
+
+        // if all this passes, the edge is good!
+        return { kind: "ok" };
     }
 
     /**
@@ -40,28 +76,19 @@ export default class AuthZ {
         const typesWithoutConfigs = new Set<string>();
 
         for (const edge of graph.edges) {
-            const type = edge.object.type;
-            const typeconfig = this.typeconfigs.get(type);
-
-            if (!typeconfig) {
-                typesWithoutConfigs.add(type);
-                continue; // no point checking relations on a type with no config
-            }
-
-            if (!typeconfig.validRelations.has(edge.name)) {
-                errors.push({
-                    kind: "invalid_relation",
-                    type,
-                    relationName: edge.name,
-                });
+            const error = this.validateEdge(edge);
+            if (error.kind !== "ok") {
+                if (error.kind === "missing_typeconfig") {
+                    typesWithoutConfigs.add(error.type);
+                } else {
+                    errors.push(error);
+                }
             }
         }
 
         for (const vertex of graph.vertices) {
             if (typeof vertex === "number") continue;
-            if (!this.typeconfigs.get(vertex.type)) {
-                typesWithoutConfigs.add(vertex.type);
-            }
+            if (!this.typeconfigs.has(vertex.type)) typesWithoutConfigs.add(vertex.type);
         }
 
         for (const type of typesWithoutConfigs) {
@@ -71,14 +98,15 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Same as validate, but prints errors to stderr before returning.
+     * */
     validateWithWarnings(): ValidationError[] {
         const errors = this.validate();
         if (errors.length > 0) {
-            console.log(
-                "\x1b[0;31mWarning:\x1b[0m the following typconfig-graph disparities were found:"
-            );
+            console.error("\x1b[0;31mWarning:\x1b[0m the following typeconfig-graph disparities were found:");
             for (const error of errors) {
-                console.log(
+                console.error(
                     error.kind === "missing_typeconfig"
                         ? `  \x1b[0;31m➜ Missing typeconfig: type ${error.type} has no config\x1b[0m`
                         : `  \x1b[0;31m➜ Invalid relation: type ${error.type} has no defined relation ${error.relationName}\x1b[0m`
@@ -88,18 +116,20 @@ export default class AuthZ {
         return errors;
     }
 
+    /**
+     * Gets all objects in object#... usersets with a certain relation to another object.
+     * */
     private resolveTargets(object: Obj, relation: string): Obj[] {
         return this.graph
             .getRelationsTo(object)
             .filter((edge) => edge.name === relation)
-            .filter(
-                (edge) =>
-                    edge.subject instanceof UserSet &&
-                    edge.subject.relationName === TOMBSTONE
-            )
+            .filter((edge) => edge.subject instanceof UserSet && edge.subject.relationName === SENTINEL)
             .map((edge) => (edge.subject as UserSet).object);
     }
 
+    /**
+     * Returns true if the user has a certain relation on an object, whether through direct relation, usersets, computed userset rewrites, or tuple-to-userset rewrites.
+     * */
     private hasRelation(
         user: number,
         object: Obj,
@@ -109,10 +139,11 @@ export default class AuthZ {
         const visit = `${object.toString()}#${relation}`;
         if (visited.has(visit)) return false;
         visited.add(visit);
+
         const typeconfig = this.typeconfigs.get(object.type);
         if (!typeconfig) return false;
 
-        // first handling direct paths thru usersets present in the graph
+        // first handling direct paths through usersets present in the graph
         if (this.graph.DFS(user, new UserSet(object, relation))) {
             return true;
         }
@@ -124,20 +155,12 @@ export default class AuthZ {
         for (const rewrite of rewrites) {
             if (typeof rewrite === "string") {
                 // computed userset
-                if (this.hasRelation(user, object, rewrite, visited))
-                    return true;
+                if (this.hasRelation(user, object, rewrite, visited)) return true;
             } else {
                 // tuple-to-userset
                 const targets = this.resolveTargets(object, rewrite.relation);
                 for (const target of targets) {
-                    if (
-                        this.hasRelation(
-                            user,
-                            target,
-                            rewrite.subRelation,
-                            visited
-                        )
-                    ) {
+                    if (this.hasRelation(user, target, rewrite.subRelation, visited)) {
                         return true;
                     }
                 }
@@ -177,36 +200,65 @@ export default class AuthZ {
         return false;
     }
 
-    addEdge(obj: Obj, name: string, subject: Subject): ValidationError[] {
-        const candidate = this.graph.clone();
-        candidate.addEdge(obj, name, subject);
-        const errors = this.validate(candidate);
-        if (errors.length === 0) this.graph = candidate;
-        return errors;
+    /**
+     * Adds an edge to the graph stored by the AuthZ system. Does not modify graph if validation fails.
+     * @returns {ValidationResult} The result of validating the new edge.
+     * @throws {Error} If the edge's object does not exist in the graph.
+     * @throws {Error} If the edge's UserId or UserSet object does not exist in the graph.
+     * @throws {Error} If the edge already exists in the graph.
+     * */
+    addEdge(obj: Obj, name: string, subject: Subject): ValidationResult {
+        const res = this.validateEdge(new Relation(obj, name, subject));
+        if (res.kind === "ok") this.graph.addEdge(obj, name, subject);
+        return res;
     }
 
-    addVertex(vertex: Vertex): ValidationError[] | null {
-        const candidate = this.graph.clone();
-        const applied = candidate.addVertex(vertex);
-        if (!applied) return null;
-        const errors = this.validate(candidate);
-        if (errors.length === 0) this.graph = candidate;
-        return errors;
+    /**
+     * Adds a vertex to the graph stored by the AuthZ system. Does not modify graph if validation fails.
+     * @returns {ValidationResult | { kind: "duplicate" }} The result of validating the new vertex.
+     *                                                     `{ kind: "duplicate" }` if the vertex already exists in the graph.
+     * */
+    addVertex(vertex: Vertex): ValidationResult | { kind: "duplicate" } {
+        if (vertex instanceof Obj && !this.typeconfigs.has(vertex.type)) {
+            return { kind: "missing_typeconfig", type: vertex.type };
+        }
+        if (!this.graph.addVertex(vertex)) {
+            return { kind: "duplicate" };
+        }
+        return { kind: "ok" };
     }
 
-    modifyObject(original: Obj, modified: Obj): ValidationError[] | null {
-        const candidate = this.graph.clone();
-        const applied = candidate.modifyObject(original, modified);
-        if (!applied) return null;
-        const errors = this.validate(candidate);
-        if (errors.length === 0) this.graph = candidate;
-        return errors;
+    /**
+     * Modifies an object in the graph stored by the AuthZ system. Does not modify graph if validation fails.
+     * @returns {ValidationResult | { kind: "duplicate_or_nonexistent" }} The result of validating the modified vertex.
+     *                                                                    `{ kind: "duplicate_or_nonexistent" }` if the
+     *                                                                    original object does not exist in the graph,
+     *                                                                    or the modified object already exists in the graph.
+     */
+    modifyObject(original: Obj, modified: Obj): ValidationResult | { kind: "duplicate_or_nonexistent" } {
+        if (!this.typeconfigs.has(modified.type)) {
+            return { kind: "missing_typeconfig", type: modified.type };
+        }
+        if (!this.graph.modifyObject(original, modified)) {
+            return { kind: "duplicate_or_nonexistent" };
+        }
+        return { kind: "ok" };
     }
 
+    /**
+     * Deletes an edge in the graph stored by the AuthZ system.
+     * @returns {boolean} `true` if the edge was found and successfully deleted.
+     *                    `false` if the edge did not exist in the graph.
+     * */
     deleteEdge(relation: Relation): boolean {
         return this.graph.deleteEdge(relation);
     }
 
+    /**
+     * Deletes a vertex in the graph stored by the AuthZ system.
+     * @returns {boolean} `true` if the vertex was found and successfully deleted.
+     *                    `false` if the vertex did not exist in the graph.
+     * */
     deleteVertex(vertex: Vertex): boolean {
         return this.graph.deleteVertex(vertex);
     }

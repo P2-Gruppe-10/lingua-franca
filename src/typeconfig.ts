@@ -1,19 +1,44 @@
 import { readdir, readFile } from "node:fs/promises";
-import { TypeconfigError } from "./error.ts";
 import type { PathLike } from "node:fs";
 import path from "node:path";
+import { TypeconfigError } from "./error.ts";
 
+/**
+ * Syntax in .tc file: `give <foo> if relation has subRelation`
+ */
 export interface RewriteRule {
     relation: string; // must be a valid relation on this type
     subRelation: string; // relation to check on the referenced object
 }
 
-// userset terms are either computed usersets or tuple-to-usersets (so a single relation or a relation plus a sub-relation on a different object)
+/**
+ * Userset terms are either computed usersets or tuple-to-usersets.
+ * if type is string then the syntax is:         `give <foo> if string`,
+ * and if the type is RewriteRule, the syntax is: `give <foo> if relation has subRelation`.
+ */
 export type UsersetTerm = string | RewriteRule;
-// userset rewrites are unions of userset terms, so the 1 or more lines under a relation that start with "give"
+/**
+ * Userset rewrites are unions of userset terms, so the 1 or more lines that start with `give <foo>`
+ */
 export type UsersetRewrite = Set<UsersetTerm>;
+/**
+ * Maps a relation name, for example "viewer", to a UsersetRewrite.
+ * I.e. in the typeconfig: `give viewer if editor`,
+ * the key would be `"viewer"` and the value would be `"editor"`.
+ */
 export type UsersetRewriteMap = Map<string, UsersetRewrite>;
+/**
+ * Describes a set of relations which grant a permission.
+ * Typeconfig syntax is: `permission <foo> = viewer + department:staff`,
+ * here a subject must have 'viewer' relation, or 'staff' relation to object with 'department' relation
+ * to get the `<foo>` permission.
+ */
 export type PermissionGrants = Set<string | RewriteRule>;
+/**
+ * Maps a permission name to a PermissionGrants.
+ * The key is the name of the permission (see `<foo>` from `PermissionGrants` desc.),
+ * and the value is the set of required relations (see `PermissionGrants`).
+ */
 export type PermissionMap = Map<string, PermissionGrants>;
 
 export interface TypeconfigData {
@@ -63,9 +88,10 @@ export default class Typeconfig implements TypeconfigData {
 
         const file = await readFile(path, { encoding: "utf-8" });
 
+        // loop over all lines of the file
         for (const [index, line] of splitFileLines(file).entries()) {
             if (line.trim() === "") continue; // skip empty lines obvs
-            const tokens = splitByWhitespace(line);
+            const tokens = splitByWhitespace(line); // split into tokens ("words")
             try {
                 Typeconfig.handleGlobal(tokens, state);
             } catch (error) {
@@ -84,12 +110,7 @@ export default class Typeconfig implements TypeconfigData {
             throw new TypeconfigError("No type was ever specified.");
         }
 
-        return new Typeconfig(
-            state.type,
-            state.validRelations,
-            state.usersetRewrites,
-            state.permissions
-        );
+        return new Typeconfig(state.type, state.validRelations, state.usersetRewrites, state.permissions);
     }
 
     private static assertRelationExists(name: string, state: TypeconfigData) {
@@ -108,32 +129,29 @@ export default class Typeconfig implements TypeconfigData {
         }
 
         if (state.permissions.has(permissionName)) {
-            throw new TypeconfigError(
-                `Permission "${permissionName}" is already defined.`
-            );
+            throw new TypeconfigError(`Permission "${permissionName}" is already defined.`);
         }
 
         if (logicTokens.length % 2 === 0) {
-            throw new TypeconfigError(
-                `Malformed permission logic. Did you leave a dangling "+" or forget a relation?`
-            ); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
+            throw new TypeconfigError(`Malformed permission logic. Did you leave a dangling "+" or forget a relation?`); // if the length of the logic tokens are equal, it can't possibly be relation names with +'s between em, since that would be an odd amount of entries
         }
 
         const grantedBy = new Set<string | RewriteRule>();
 
         for (const token of logicTokens) {
+            // skip the plusses because they're just syntax
             if (token === "+") continue;
             if (token.includes(":")) {
+                // if there's a colon in there, we're looking at a rewrite rule, not just another relationName
                 const [relation, subRelation] = token.split(":");
                 if (!relation || !subRelation) {
-                    throw new TypeconfigError(
-                        `Malformed rewrite rule ${token}.`
-                    );
+                    throw new TypeconfigError(`Malformed rewrite rule ${token}.`);
                 }
                 Typeconfig.assertRelationExists(relation, state);
                 grantedBy.add({ relation, subRelation });
                 continue;
             }
+            // otherwise its just a singular relationName on this type, so assert it exists and add it
             Typeconfig.assertRelationExists(token, state);
             grantedBy.add(token);
         }
@@ -142,7 +160,7 @@ export default class Typeconfig implements TypeconfigData {
     }
 
     /**
-     * handles what happens in the lines where we are inside a relation definition; currently, only "give" commands exist
+     * Handles "give" commands, e.g., give member if parent has member, or give viewer if editor.
      */
     private static handleGive(tokens: string[], state: TypeconfigData) {
         if (tokens[0] !== "give" || tokens[2] !== "if") {
@@ -150,9 +168,7 @@ export default class Typeconfig implements TypeconfigData {
         }
 
         if (tokens.length !== 4 && tokens.length !== 6) {
-            throw new TypeconfigError(
-                `Userset term must be "give X if Y" or "give X if Y has Z".`
-            );
+            throw new TypeconfigError(`Userset term must be "give X if Y" or "give X if Y has Z".`);
         }
 
         /* eslint-disable @typescript-eslint/no-non-null-assertion */
@@ -164,12 +180,14 @@ export default class Typeconfig implements TypeconfigData {
         let term: UsersetTerm;
 
         if (tokens.length === 6) {
+            // if length is 6, then term is a conditional rule
             if (tokens[4] !== "has") {
                 throw new TypeconfigError(`Malformed give syntax.`);
             }
             const subRelation = tokens[5]!;
             term = { relation: relationReceiving, subRelation };
         } else {
+            // if the length is 4, it is unconditional, and is set directly
             term = relationReceiving;
         }
         /* eslint-enable @typescript-eslint/no-non-null-assertion */
@@ -180,8 +198,7 @@ export default class Typeconfig implements TypeconfigData {
     }
 
     /**
-     * handles the lines where we are not inside anything
-     * currently this is for setting the type of a typeconfig, starting a relation definition, and setting permission rules
+     * Handles a singular line. Matches first token against the set of available keywords type, relation, give and permission.
      */
     private static handleGlobal(tokens: string[], state: TypeconfigData) {
         const [keyword, value, ...extra] = tokens;
@@ -199,10 +216,9 @@ export default class Typeconfig implements TypeconfigData {
                         `"type" definition should only have 2 tokens, got ${tokens.length.toString()}.`
                     );
                 }
-                if (typeof state.type === "string") {
-                    throw new TypeconfigError(
-                        `Type is already defined as "${state.type}".`
-                    );
+                // type already specified
+                if (state.type !== undefined) {
+                    throw new TypeconfigError(`Type is already defined as "${state.type}".`);
                 }
                 state.type = value;
                 break;
@@ -214,9 +230,7 @@ export default class Typeconfig implements TypeconfigData {
                     );
                 }
                 if (state.validRelations.has(value)) {
-                    throw new TypeconfigError(
-                        `Relation ${value} is already defined.`
-                    );
+                    throw new TypeconfigError(`Relation ${value} is already defined.`);
                 }
                 state.validRelations.add(value);
                 break;
@@ -238,15 +252,23 @@ export default class Typeconfig implements TypeconfigData {
     }
 }
 
-export const typeconfigsFromDir = async (
-    dir: PathLike
-): Promise<Typeconfig[]> => {
+/**
+ * Takes a directory and loads every .tc file, returning a list of typeconfigs.
+ * */
+export const typeconfigsFromDir = async (dir: PathLike): Promise<Typeconfig[]> => {
     const entries = (await readdir(dir, { withFileTypes: true })).filter(
         (dirent) => dirent.isFile() && dirent.name.endsWith(".tc")
     ); // looking at the entries in some dir and taking only .tc files
-    return await Promise.all(
-        entries.map((entry) =>
-            Typeconfig.fromFile(path.join(entry.parentPath, entry.name))
-        )
-    ); // map each of those files to a parsed Typeconfig
+    return await Promise.all(entries.map((entry) => Typeconfig.fromFile(path.join(entry.parentPath, entry.name)))); // map each of those files to a parsed Typeconfig
+};
+
+/**
+ * Takes a list of typeconfigs and maps each type to its config.
+ */
+export const mapTypeconfigs = (typeconfigs: Typeconfig[]) => {
+    const typeconfigMap = new Map<string, Typeconfig>();
+    for (const tc of typeconfigs) {
+        typeconfigMap.set(tc.type, tc);
+    }
+    return typeconfigMap;
 };

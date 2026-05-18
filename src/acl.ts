@@ -2,7 +2,7 @@ export type ObjectId = string;
 export type Type = string;
 /**
  * A thing which a subject can have a relation to.
- * Consist of a type and a unique identifier.
+ * Consists of a type and a unique identifier.
  */
 export class Obj {
     type: Type;
@@ -24,7 +24,7 @@ export class Obj {
 
 export type RelationName = string;
 /**
- * Represents a set of users that all share an relation to an object
+ * Represents a set of users that all share a relation to an object
  */
 export class UserSet {
     object: Obj;
@@ -36,10 +36,7 @@ export class UserSet {
     }
 
     isEqual(other: UserSet): boolean {
-        return (
-            this.object.isEqual(other.object) &&
-            this.relationName === other.relationName
-        );
+        return this.object.isEqual(other.object) && this.relationName === other.relationName;
     }
 
     toString(): string {
@@ -51,11 +48,11 @@ export type UserId = number;
 export type Subject = UserId | UserSet;
 
 export function subjectsAreEqual(a: Subject, b: Subject): boolean {
-    if (typeof a === "number") {
-        return a === b;
-    }
+    if (typeof a !== typeof b) return false;
 
-    return a.isEqual(b as UserSet);
+    if (typeof a === "number") return a === b;
+
+    return a.isEqual(b as UserSet); // typescript does not know b is UserSet
 }
 
 /**
@@ -80,7 +77,7 @@ export class Relation {
         );
     }
 
-    // Same serialization style as the Zanzibar paper https://authzed.com/zanzibar
+    // same serialization style as the Zanzibar paper https://authzed.com/zanzibar
     toString(): string {
         return `${this.object.toString()}#${this.name}@${this.subject.toString()}`;
     }
@@ -93,37 +90,27 @@ export function isObject(value: unknown): value is JsonObject {
 }
 
 /**
- * Tests wether an object is _shaped_ like an `Obj`.
+ * Tests whether an object is _shaped_ like an `Obj`.
  */
 export function isObjShape(o: JsonObject): o is {
     type: Type;
     identifier: ObjectId;
 } {
-    return (
-        "type" in o &&
-        typeof o.type === "string" &&
-        "identifier" in o &&
-        typeof o.identifier === "string"
-    );
+    return "type" in o && typeof o.type === "string" && "identifier" in o && typeof o.identifier === "string";
 }
 
 /**
- * Tests wether an object is _shaped_ like a `UserSet`.
+ * Tests whether an object is _shaped_ like a `UserSet`.
  */
 export function isUserSetShape(o: JsonObject): o is {
     object: Obj;
     relationName: RelationName;
 } {
-    return (
-        "object" in o &&
-        o.object instanceof Obj &&
-        "relationName" in o &&
-        typeof o.relationName === "string"
-    );
+    return "object" in o && o.object instanceof Obj && "relationName" in o && typeof o.relationName === "string";
 }
 
 /**
- * Tests wether an object is _shaped_ like a `Relation`.
+ * Tests whether an object is _shaped_ like a `Relation`.
  */
 export function isRelationShape(o: JsonObject): o is {
     object: Obj;

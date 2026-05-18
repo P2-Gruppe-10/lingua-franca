@@ -6,72 +6,71 @@ import moment from "moment";
 const fmt = "YYYY-MM-DDTHH:mm:ss";
 
 /**
- * Updates config.json with newest version of Graph
- *
- * If more than 1 hour since last backup a new one is created
- */
-export async function serializeConfig(graph: Graph): Promise<void> {
-    //Converts graph to JSON string and assigns it to stringifiedGraph
+ * Writes a graph to ./graph.json. As a side effect, also writes to ./backups/ if an hour has passed since last time
+ * this was called.
+ * */
+export async function serializeGraph(graph: Graph): Promise<void> {
+    // main effect: write the stringified graph to the default filepath
     const stringifiedGraph = graph.stringify();
+    await fs.writeFile("./graph.json", stringifiedGraph);
 
-    //Gets current time and time of last backup
+    // side effect: make a backup if 1 hour since last time
+    await makeBackup(stringifiedGraph, 1, "hours");
+}
+
+/**
+ * Takes a string and writes it to a new file in ./backups, named the current time, if it has been [amount] [unit] since last backup. Example of [amount] [unit] could be 10 minutes.
+ * */
+async function makeBackup(stringifiedGraph: string, amount: moment.DurationInputArg1, unit: moment.DurationInputArg2) {
+    // get current time and time of last backup
     const now = moment().format(fmt);
-    const lastBackup = (
-        await fs
-            .readFile("./lastBackupTime.txt", { encoding: "utf-8" })
-            .catch(() => "1970-06-07T00:00:00")
-    ).trim();
+    const lastBackup = await lastBackupTime();
 
-    //Compare if at least one hour since last backup - if so create new backup
-    if (moment(now).isAfter(moment(lastBackup).add(1, "hours"))) {
+    // if at least one hour has passed since last backup, create a new backup
+    if (moment(now).isAfter(lastBackup.add(amount, unit))) {
         await fs.mkdir("./backup/", { recursive: true });
-        //Create filepath string for new backup
-        const backupFileName = "./backup/" + now + ".json";
 
-        //Create new backup file with current graph with name from backupFileName
-        await fs.writeFile(backupFileName, stringifiedGraph);
-
-        //Update time of last backup to now
-        await fs.writeFile("./lastBackupTime.txt", now);
+        // create new backup file with current graph, name it the current time
+        await fs.writeFile(`./backup/${now}.json`, stringifiedGraph);
     }
+}
 
-    //Update config file with newest version of graph
-    await fs.writeFile("./config.json", stringifiedGraph);
+/*
+ * Reads a graph from ./graph.json and parses it into a Graph object.
+ * */
+export async function deserializeGraph(): Promise<Graph> {
+    const graph = await fs.readFile("./graph.json", { encoding: "utf-8" }).catch(() => `{"vertices": [], "edges": []}`);
+    return Graph.fromJSON(graph);
 }
 
 /**
- * Creates Graph from newest config.json file
- *
- * @throws {Error} if config.json did not create a valid
- */
-export async function deserializeConfig(): Promise<Graph> {
-    //Reads config.json
-    const config = await fs.readFile("./config.json");
-
-    //Converts config.json contents to Graph and returns this
-    const graph = Graph.fromJSON(config.toString());
-
-    return graph;
+ * Finds the newest backup timestamp in ./backups/, returns a Moment object
+ * */
+async function lastBackupTime(): Promise<moment.Moment> {
+    const backupfiles = await fs.readdir("./backup/").catch(() => []); // if no backups, give empty array which will fall back to unix epoch in next line
+    const latestBackupFile = backupfiles.sort().reverse()[0] ?? "1970-06-07T00:00:00";
+    const timestamp = latestBackupFile.replace(/\.json$/i, "");
+    return moment(timestamp);
 }
 
 /**
- * Creates Graph from newest valid backup file
+ * Creates Graph from newest valid backup file.
  *
- * @throws {Error} if no valid backup can be found
+ * @throws {Error} if no valid backup can be found.
  */
 export async function restoreFromBackup(): Promise<Graph> {
-    // Creates array of backup file names
-    const backupfiles = await fs.readdir("/backup/");
-    backupfiles.sort();
+    // create an array of backup file names
+    const backupfiles = await fs.readdir("./backup/").catch(() => []); // on error, give empty array, will jump to actual throw at the bottom of the function
+    backupfiles.sort().reverse();
 
-    for (const filename of backupfiles.reverse()) {
-        // Attempts to read current backup file, create and return Graph
+    for (const filename of backupfiles) {
+        // attempt to read current backup file, create and return Graph
         try {
-            const config = await fs.readFile("./backup/" + filename);
-            const graph = Graph.fromJSON(config.toString());
-            return graph;
+            const config = await fs.readFile(`./backup/${filename}`, {
+                encoding: "utf-8",
+            });
+            return Graph.fromJSON(config);
         } catch {
-            // If fail try next
             continue;
         }
     }

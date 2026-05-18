@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
 import { Obj, Relation, UserSet } from "../src/acl.ts";
 import Graph, { type Vertex } from "../src/graph.ts";
-import { serializeConfig, deserializeConfig } from "../src/serialize.ts";
+import { serializeGraph, deserializeGraph } from "../src/serialize.ts";
 
 describe("Serialization", { timeout: 1000 }, () => {
     it("should serialize a simple graph", async () => {
@@ -10,15 +10,13 @@ describe("Serialization", { timeout: 1000 }, () => {
         const læge = new Obj("group", "læge");
 
         const vertices: Vertex[] = [mortenEHR, læge];
-        const edges: Relation[] = [
-            new Relation(mortenEHR, "viewer", new UserSet(læge, "member")),
-        ];
+        const edges: Relation[] = [new Relation(mortenEHR, "viewer", new UserSet(læge, "member"))];
 
         const graph = new Graph(vertices, edges);
 
-        await serializeConfig(graph);
+        await serializeGraph(graph);
 
-        const read = await fs.readFile("./config.json");
+        const read = await fs.readFile("./graph.json");
 
         expect(read.toString()).toStrictEqual(
             '{"vertices":[{"type":"EHR","identifier":"mortenEHR"},{"type":"group","identifier":"læge"}],"edges":[{"object":{"type":"EHR","identifier":"mortenEHR"},"name":"viewer","subject":{"object":{"type":"group","identifier":"læge"},"relationName":"member"}}]}'
@@ -38,18 +36,7 @@ describe("Serialization", { timeout: 1000 }, () => {
     const morten = 5;
     const ib = 6; // not used in the edges
 
-    const vertices: Vertex[] = [
-        mortenEhr,
-        læge,
-        overLæge,
-        morten,
-        bob,
-        alice,
-        knud,
-        gertrud,
-        martin,
-        ib,
-    ];
+    const vertices: Vertex[] = [mortenEhr, læge, overLæge, morten, bob, alice, knud, gertrud, martin, ib];
 
     const edges: Relation[] = [
         new Relation(mortenEhr, "viewer", new UserSet(læge, "member")),
@@ -66,9 +53,9 @@ describe("Serialization", { timeout: 1000 }, () => {
     it("should serialize the graph", async () => {
         const graph = new Graph(vertices, edges);
 
-        await serializeConfig(graph);
+        await serializeGraph(graph);
 
-        const deserializedGraph = await deserializeConfig();
+        const deserializedGraph = await deserializeGraph();
 
         expect(deserializedGraph).toStrictEqual(graph);
     });
