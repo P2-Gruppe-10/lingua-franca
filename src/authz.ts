@@ -128,48 +128,6 @@ export default class AuthZ {
     }
 
     /**
-     * Returns true if the user has a certain relation on an object, whether through direct relation, usersets, computed userset rewrites, or tuple-to-userset rewrites.
-     * */
-    private hasRelation(
-        user: number,
-        object: Obj,
-        relation: string,
-        visited: Set<string> = new Set<string>()
-    ): boolean {
-        const visit = `${object.toString()}#${relation}`;
-        if (visited.has(visit)) return false;
-        visited.add(visit);
-
-        const typeconfig = this.typeconfigs.get(object.type);
-        if (!typeconfig) return false;
-
-        // first handling direct paths through usersets present in the graph
-        if (this.graph.DFS(user, new UserSet(object, relation))) {
-            return true;
-        }
-
-        // then userset rewrites
-        const rewrites = typeconfig.usersetRewrites.get(relation);
-        if (!rewrites) return false; // if there are none, you're out of luck
-
-        for (const rewrite of rewrites) {
-            if (typeof rewrite === "string") {
-                // computed userset
-                if (this.hasRelation(user, object, rewrite, visited)) return true;
-            } else {
-                // tuple-to-userset
-                const targets = this.resolveTargets(object, rewrite.relation);
-                for (const target of targets) {
-                    if (this.hasRelation(user, target, rewrite.subRelation, visited)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false; // if none of the previous steps gave us a true, they must not have the relation
-    }
-
-    /**
      * Checks if a UserId has a certain permission on an object of a certain type.
      * Returns false on missing typeconfigs and invalid permission names; make sure to validate the AuthZ system first.
      * */
@@ -183,7 +141,7 @@ export default class AuthZ {
         for (const grant of grantingRelations) {
             // simple case, just look for a relation
             if (typeof grant === "string") {
-                if (this.hasRelation(user, object, grant)) {
+                if (this.graph.DFS(user, new UserSet(object, grant), this)) {
                     return true;
                 }
                 continue; // it's not a rewrite rule but it also didn't give our user the green light, so skip
@@ -191,7 +149,7 @@ export default class AuthZ {
             // otherwise the grant is a rewrite rule
             const targets = this.resolveTargets(object, grant.relation);
             for (const target of targets) {
-                if (this.hasRelation(user, target, grant.subRelation)) {
+                if (this.graph.DFS(user, new UserSet(target, grant.subRelation), this)) {
                     return true;
                 }
             }
