@@ -8,6 +8,7 @@ fi
 readonly RED="\033[0;31m"
 readonly GREEN="\033[0;32m"
 readonly YELLOW="\033[0;33m"
+readonly BLUE="\033[0;34m"
 readonly RESET="\033[0m"
 readonly BOLD="\033[1m"
 
@@ -34,7 +35,7 @@ cleanup() {
     kill $server_pid 
     rm -rf "$target_dir"
     echo "---"
-    echo "$number_tests tests completed"
+    echo -e "${BLUE}${RESET} $number_tests tests completed"
     echo -e "${GREEN}✓ $number_succeeded passed${RESET}"
     echo -e "${YELLOW}~ $number_expected_failed expected failures${RESET}"
     echo -e "${RED}✗ $number_failed failed${RESET}"
@@ -67,11 +68,11 @@ runtest() {
 
 print-body() {
     local body="$@"
-
     if [[ $body == "" ]]; then
         return
     fi
 
+    # Check if $body is JSON or not
     if jq empty 2>/dev/null <<<"$body"; then
         echo "json response:"
         jq <<<"$body"
@@ -85,15 +86,13 @@ endtest() {
     local exit_code=$1
     let number_tests++
     if [[ $exit_code != 0 ]]; then
-        echo -e "${RED}failed test: \"$current_test_name\"${RESET}"
+        echo -e "${RED}✗${RESET}"
         let number_failed++
+        print-body $curl_body
     else
         let number_succeeded++
         echo -e "${GREEN}✓${RESET}"
-        echo -e "${GREEN}succeeded test: \"$current_test_name\"${RESET}"
     fi
-
-    print-body $curl_body
 }
 
 endtest-if-failed() {
@@ -112,9 +111,8 @@ endtest-expect-fail() {
     else
         let number_failed++
         echo -e "${RED}✗${RESET}"
+        print-body $curl_body
     fi
-
-    print-body $curl_body
 }
 
 do-curl() {
@@ -132,7 +130,6 @@ runtest "add subject"
 user=12
 
 do-curl localhost:3000/subjects \
-||||||| parent of acf6072 (fix: call print-body before endtest)
         -d "{\"userId\": $user}" \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
@@ -153,7 +150,6 @@ do-curl localhost:3000/subjects \
         --max-time 5 \
         --fail-with-body \
         --silent
-)
 
 endtest-expect-fail $?
 
