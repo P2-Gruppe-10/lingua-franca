@@ -93,7 +93,7 @@ export default class Typeconfig implements TypeconfigData {
             if (line.trim() === "") continue; // skip empty lines obvs
             const tokens = splitByWhitespace(line); // split into tokens ("words")
             try {
-                Typeconfig.handleGlobal(tokens, state);
+                Typeconfig.handleLine(tokens, state);
             } catch (error) {
                 if (error instanceof TypeconfigError) {
                     throw new TypeconfigError(
@@ -200,7 +200,7 @@ export default class Typeconfig implements TypeconfigData {
     /**
      * Handles a singular line. Matches first token against the set of available keywords type, relation, give and permission.
      */
-    private static handleGlobal(tokens: string[], state: TypeconfigData) {
+    private static handleLine(tokens: string[], state: TypeconfigData) {
         const [keyword, value, ...extra] = tokens;
 
         if (!keyword || !value) {
