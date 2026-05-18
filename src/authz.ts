@@ -54,8 +54,8 @@ export default class AuthZ {
                 };
             }
 
-            // if so, does the relation of the UserSet exist on that object?
-            if (!usersetObjectTypeconfig.validRelations.has(userset.relationName))
+            // if so, does the relation of the UserSet exist on that object? (given that it is not sentinel)
+            if (userset.relationName !== SENTINEL && !usersetObjectTypeconfig.validRelations.has(userset.relationName))
                 return {
                     kind: "invalid_relation",
                     type: userset.object.type,
